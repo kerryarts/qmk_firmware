@@ -15,11 +15,12 @@
 
 /*** TYPE DEF ***/
 
-enum custom_layers {
-    CL_BASE,
-    CL_FUNC,
-    CL_SYS
-};
+// Copy to layers.c after auto generation
+// enum custom_layers {
+//     CL_BASE,
+//     CL_FUNC,
+//     CL_SYS
+// };
 
 enum key_cap_color {
     KC_ORANGE,
@@ -83,7 +84,7 @@ void update_key_led(uint8_t layer_index, uint8_t key_row, uint8_t key_col, led_t
         return;
     }
 
-    enum key_color key_cap_color = key_cap_color_map[led_index];
+    enum key_cap_color key_cap_color = key_cap_color_map[led_index];
     uint16_t key_code = pgm_read_word(&keymaps[layer_index][key_row][key_col]);
     bool key_code_mapped = key_code >= KC_A; // Excludes KC_NO (key not mapped) and KC_TRNS (key is transparent), among others
 
