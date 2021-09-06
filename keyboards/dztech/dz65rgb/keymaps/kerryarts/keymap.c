@@ -80,7 +80,7 @@ void update_key_led(uint8_t layer_index, uint8_t key_row, uint8_t key_col, led_t
     uint8_t led_index = g_led_config.matrix_co[key_row][key_col];
 
     // Early exit if there is no LED at this col+row position
-    if (led_index != NO_LED) {
+    if (led_index == NO_LED) {
         return;
     }
 
