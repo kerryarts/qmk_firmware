@@ -19,6 +19,7 @@
 // enum custom_layers {
 //     CL_BASE,
 //     CL_FUNC,
+//     CL_RGB,
 //     CL_SYS
 // };
 
