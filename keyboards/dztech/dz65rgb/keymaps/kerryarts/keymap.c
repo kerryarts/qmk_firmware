@@ -67,8 +67,8 @@ bool key_code_is_shiftable(uint16_t key_code) {
         || key_code == KC_SLASH;
 }
 
-void update_key_led(uint8_t layer_index, uint8_t key_row, uint8_t key_col, led_t led_state, bool shift_held) {
-    uint8_t led_index = g_led_config.matrix_co[key_row][key_col];
+void update_key_led(uint8_t layer_index, keypos_t key_pos, led_t led_state, uint8_t modifier_mask, HSV curr_hsv, RGB curr_rgb) {
+    uint8_t led_index = g_led_config.matrix_co[key_pos.row][key_pos.col];
 
     // Early exit if there is no LED at this col+row position
     if (led_index == NO_LED) {
@@ -76,8 +76,8 @@ void update_key_led(uint8_t layer_index, uint8_t key_row, uint8_t key_col, led_t
     }
 
     enum key_cap_color key_cap_color = key_cap_color_map[led_index];
-    uint16_t key_code = pgm_read_word(&keymaps[layer_index][key_row][key_col]);
     bool key_code_mapped = key_code >= KC_A; // Excludes KC_NO (key not mapped) and KC_TRNS (key is transparent), among others
+    uint16_t key_code = keymap_key_to_keycode(layer_index, key_pos);
 
     // If this key isnt mapped to anything, keep it off
     if (!key_code_mapped) {
@@ -145,7 +145,8 @@ void rgb_matrix_indicators_user(void) {
 
     for (uint8_t key_row = 0; key_row < MATRIX_ROWS; key_row++) {
         for (uint8_t key_col = 0; key_col < MATRIX_COLS; key_col++) {
-            update_key_led(layer_index, key_row, key_col, led_state, shift_held);
+            keypos_t key_pos = { .row = key_row, .col = key_col };
+            update_key_led(layer_index, key_pos, led_state, modifier_mask, curr_hsv, curr_rgb);
         }
     }
 }
