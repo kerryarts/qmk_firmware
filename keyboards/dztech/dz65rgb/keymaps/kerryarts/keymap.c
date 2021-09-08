@@ -31,15 +31,6 @@ enum key_cap_color {
     KC_WHITE
 };
 
-enum key_type {
-    KT_ALPHA,
-    KT_NUMERIC,
-    KT_SYMBOL,
-    KT_MODIFIER,
-    KT_SPECIAL,
-    KT_FUNCTION
-};
-
 /*** CONSTS ***/
 
 // Maps LED index to the color of the key cap in my key cap set
