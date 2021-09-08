@@ -18,12 +18,13 @@
 /*** TYPE DEF ***/
 
 // Copy to layers.c after auto generation
-// enum custom_layers {
-//     CL_BASE,
-//     CL_FUNC,
-//     CL_RGB,
-//     CL_SYS
-// };
+enum custom_layers {
+    CL_BASE,
+    CL_FUNC,
+    CL_RGB,
+    CL_SYS,
+    CL_ADJ
+};
 
 enum key_cap_color {
     KC_ORANGE,
