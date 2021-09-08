@@ -1,6 +1,8 @@
 // TODO: This probably removes the need to have NKRO keys mapped
 #define FORCE_NKRO
 
+#define RGB_MATRIX_FRAMEBUFFER_EFFECTS // Required for DIGITAL_RAIN and TYPING_HEATMAP
+
 // Set default animation mode
 #undef RGB_MATRIX_STARTUP_MODE
 #define RGB_MATRIX_STARTUP_MODE RGB_MATRIX_SOLID_COLOR
@@ -34,7 +36,7 @@
 #define DISABLE_RGB_MATRIX_HUE_PENDULUM              // Hue shifts up a slight ammount in a wave to the right, then back to the left
 #define DISABLE_RGB_MATRIX_HUE_WAVE                  // Hue shifts up a slight ammount and then back down in a wave to the right
 #define DISABLE_RGB_MATRIX_DIGITAL_RAIN              // That famous computer simulation
-#define DISABLE_RGB_MATRIX_TYPING_HEATMAP            // How hot is your WPM!
+// #define DISABLE_RGB_MATRIX_TYPING_HEATMAP            // How hot is your WPM!
 #define DISABLE_RGB_MATRIX_SOLID_REACTIVE_SIMPLE     // Pulses keys hit to hue & value then fades value outS
 #define DISABLE_RGB_MATRIX_SOLID_REACTIVE            // Static single hue, pulses keys hit to shifted hue then fades to current hue
 #define DISABLE_RGB_MATRIX_SOLID_REACTIVE_WIDE       // Hue & value pulse near a single key hit then fades value out
