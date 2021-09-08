@@ -152,6 +152,16 @@ void rgb_matrix_indicators_user(void) {
 
 layer_state_t layer_state_set_user(layer_state_t state) {
     switch (get_highest_layer(state)) {
+        case CL_BASE:
+            break;
+        case CL_FUNC:
+            break;
+        case CL_RGB:
+            // Since we are editing the RGB lighting, ensure its turned on
+            rgb_matrix_enable_noeeprom();
+            break;
+        case CL_SYS:
+            break;
         default:
             break;
     }
