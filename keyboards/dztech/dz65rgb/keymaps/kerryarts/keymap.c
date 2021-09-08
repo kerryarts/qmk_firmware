@@ -84,7 +84,6 @@ void update_key_led(uint8_t layer_index, keypos_t key_pos, led_t led_state, uint
         rgb_matrix_set_color(led_index, RGB_OFF);
     }
     // If caps lock is turned on or shift is being held, highlight the white 'shiftable' keys
-    // TODO: caps lock doesn't currently have a mapping
     else if ((led_state.caps_lock || shift_held) && key_cap_color == KC_WHITE && key_code_is_shiftable(key_code)) {
         rgb_matrix_set_color(led_index, RGB_RED);
     }
