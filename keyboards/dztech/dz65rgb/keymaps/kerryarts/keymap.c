@@ -48,16 +48,6 @@ const uint8_t key_cap_color_map[KEY_COUNT] = {
     KC_GRAY  , KC_GRAY , KC_GRAY ,                     KC_WHITE,                               KC_GRAY , KC_GRAY , KC_GRAY , KC_ORANGE, KC_ORANGE, KC_ORANGE
 };
 
-// Maps LED index to the 'type' of key
-// OPSOLETE FOR NOW: Replaced by looking up the key code instead
-const uint8_t key_type_map[KEY_COUNT] = {
-    KT_SPECIAL , KT_NUMERIC, KT_NUMERIC , KT_NUMERIC, KT_NUMERIC, KT_NUMERIC, KT_NUMERIC, KT_NUMERIC, KT_NUMERIC, KT_NUMERIC, KT_NUMERIC , KT_SYMBOL , KT_SYMBOL , KT_SPECIAL, KT_SPECIAL,
-    KT_SPECIAL , KT_ALPHA  , KT_ALPHA   , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA   , KT_SYMBOL , KT_SYMBOL , KT_SYMBOL , KT_SPECIAL,
-    KT_FUNCTION, KT_ALPHA  , KT_ALPHA   , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_SYMBOL  , KT_SYMBOL ,             KT_SPECIAL, KT_SPECIAL,
-    KT_MODIFIER, KT_ALPHA  , KT_ALPHA   , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_ALPHA  , KT_SYMBOL , KT_SYMBOL , KT_SYMBOL  ,             KT_SPECIAL, KT_SPECIAL, KT_SPECIAL,
-    KT_MODIFIER, KT_SPECIAL, KT_MODIFIER,                         KT_SPECIAL,                                     KT_SPECIAL, KT_FUNCTION, KT_SPECIAL, KT_SPECIAL, KT_SPECIAL, KT_SPECIAL
-};
-
 /*** USER FUNC ***/
 
 // Returns true if they can be modified by the shift or CAPS LOCK key
