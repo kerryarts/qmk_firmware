@@ -7,11 +7,13 @@
 // #define HSV_RED           0, 255, 255 //   0   #FF0000 Defined in color.h
 #define HSV_RED_OR          11, 255, 255 //  15   #FF4000 Red-orange mix
 #define HSV_INTER_OR        13, 255, 255 //  19   #FF4F00 International orange, the best orange
+#define HSV_INTER2_OR       14, 255, 255 //  19   #FF4F00 International orange, rounded to a multiple of 7
 #define HSV_SAFETY_OR       20, 255, 255 //  28   #FF7900 Safety orange
 #define HSV_FULL_OR         21, 255, 255 //  30   #FF8000 Full orange
 // #define HSV_ORANGE       28, 255, 255 //  40   #FFAA00 Defined in color.h
 
 #define KEY_COUNT 68
+#define HUE_INC 7
 
 /*** TYPE DEF ***/
 
@@ -76,42 +78,87 @@ void update_key_led(uint8_t layer_index, keypos_t key_pos, led_t led_state, uint
     }
 
     enum key_cap_color key_cap_color = key_cap_color_map[led_index];
-    bool key_code_mapped = key_code >= KC_A; // Excludes KC_NO (key not mapped) and KC_TRNS (key is transparent), among others
     uint16_t key_code = keymap_key_to_keycode(layer_index, key_pos);
+    bool key_code_is_mapped = key_code >= KC_A; // Excludes KC_NO, KC_ROLL_OVER, KC_POST_FAIL, KC_UNDEFINED
+    bool key_code_is_layer = key_code >= QK_LAYER_TAP && key_code <= QK_LAYER_TAP_TOGGLE_MAX; // TODO: The comment in quantum_keycodes.h said not to use these directly...shhh don't tell anyone
+    bool key_code_is_media = (key_code >= KC_AUDIO_MUTE && key_code <= KC_MEDIA_EJECT) || key_code == KC_MEDIA_FAST_FORWARD || key_code == KC_MEDIA_REWIND;
+    uint8_t matrix_mode = rgb_matrix_get_mode();
 
-    // If this key isnt mapped to anything, keep it off
-    if (!key_code_mapped) {
-        rgb_matrix_set_color(led_index, RGB_OFF);
-    }
     // If caps lock is turned on or shift is being held, highlight the white 'shiftable' keys
-    else if ((led_state.caps_lock || shift_held) && key_cap_color == KC_WHITE && key_code_is_shiftable(key_code)) {
-        rgb_matrix_set_color(led_index, RGB_RED);
+    if ((led_state.caps_lock || (modifier_mask & MOD_MASK_SHIFT && (matrix_mode == RGB_MATRIX_SOLID_COLOR || matrix_mode == RGB_MATRIX_HUE_BREATHING)))
+        && key_cap_color == KC_WHITE
+        && (key_code_is_shiftable(key_code) || (layer_index == CL_FUNC && key_code_is_mapped))) {
+        // Shift the hue backward a bitg
+        curr_hsv.h = (255 + curr_hsv.h - (HUE_INC * 2)) % 255;
+        RGB new_rgb = hsv_to_rgb(curr_hsv);
+        rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
+        return;
     }
+
+    // On anything but the base layer, highlight layer switch keys red
+    if (layer_index != CL_BASE && key_code_is_layer) {
+        rgb_matrix_set_color(led_index, RGB_RED);
+        return;
+    }
+
     // Else light the mapped key based on the current layer
-    else {
-        switch (layer_index) {
-            case CL_BASE:
-                // For the base layer to look nice
-                // - Only light up the light colored key caps which can easily let light through them
-                // - Don't light up the spacebar, since it has poor light distribution
-                // TODO: See if we can have an animated effect on the base layer, on only these keys
-                if ((key_cap_color == KC_WHITE || key_cap_color == KC_ORANGE) && key_code != KC_SPACE) {
-                    rgb_matrix_set_color(led_index, RGB_ORANGE);
-                }
-                else {
-                    rgb_matrix_set_color(led_index, RGB_OFF);
-                }
-                break;
-            case CL_FUNC:
-                rgb_matrix_set_color(led_index, RGB_BLUE);
-                break;
-            case CL_SYS:
-                rgb_matrix_set_color(led_index, RGB_GREEN);
-                break;
-            default:
+    switch (layer_index) {
+        case CL_BASE:
+            // Don't light up the spacebar, since it has poor light distribution
+            if (!key_code_is_mapped || key_code == KC_SPACE) {
                 rgb_matrix_set_color(led_index, RGB_OFF);
-                break;
-        }
+            }
+            else {
+                switch (key_cap_color) {
+                    // Make the orange keys even more orange
+                    case KC_ORANGE:
+                        rgb_matrix_set_color(led_index, RGB_ORANGE);
+                        break;
+                    // Gray keys have poor light distribution, keep them off
+                    case KC_GRAY:
+                        rgb_matrix_set_color(led_index, RGB_OFF);
+                        break;
+                    case KC_WHITE:
+                        // Let the RGB effect be used
+                        break;
+                }
+            }
+            break;
+        case CL_FUNC:
+            if (!key_code_is_mapped) {
+                rgb_matrix_set_color(led_index, RGB_OFF);
+            }
+            else if (key_code_is_media) {
+                rgb_matrix_set_color(led_index, RGB_GREEN);
+            }
+            else {
+                rgb_matrix_set_color(led_index, curr_rgb.r, curr_rgb.g, curr_rgb.b);
+            }
+            break;
+        case CL_SYS:
+            if (!key_code_is_mapped) {
+                rgb_matrix_set_color(led_index, RGB_OFF);
+            }
+            else {
+                rgb_matrix_set_color(led_index, RGB_GREEN);
+            }
+            break;
+        case CL_RGB:
+            switch (key_cap_color) {
+                case KC_ORANGE:
+                    rgb_matrix_set_color(led_index, RGB_ORANGE);
+                    break;
+                case KC_GRAY:
+                    rgb_matrix_set_color(led_index, RGB_OFF);
+                    break;
+                case KC_WHITE:
+                    // Let the RGB effect be used on all keys, so we can preview it
+                    break;
+            }
+            break;
+        default:
+            rgb_matrix_set_color(led_index, RGB_OFF);
+            break;
     }
 }
 
@@ -137,10 +184,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 void rgb_matrix_indicators_user(void) {
     led_t led_state = host_keyboard_led_state(); // Has .caps_lock, .num_lock, .scroll_lock
     uint8_t layer_index = get_highest_layer(layer_state); // Highest layer, but there might be others enabled
-
-    const uint8_t modifier_mask = get_mods();
-    const uint8_t shift_held = modifier_mask & (MOD_BIT(KC_LSHIFT)|MOD_BIT(KC_RSHIFT));
-    // const uint8_t ctrl_held = modifier_mask & (MOD_BIT(KC_LCTL)|MOD_BIT(KC_RCTL));
+    uint8_t modifier_mask = get_mods();
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    RGB curr_rgb = hsv_to_rgb(curr_hsv);
 
     for (uint8_t key_row = 0; key_row < MATRIX_ROWS; key_row++) {
         for (uint8_t key_col = 0; key_col < MATRIX_COLS; key_col++) {
