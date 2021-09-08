@@ -1,7 +1,12 @@
 // TODO: This probably removes the need to have NKRO keys mapped
 #define FORCE_NKRO
 
-#define RGB_MATRIX_FRAMEBUFFER_EFFECTS // Required for DIGITAL_RAIN and TYPING_HEATMAP
+// Required for DIGITAL_RAIN and TYPING_HEATMAP
+#define RGB_MATRIX_FRAMEBUFFER_EFFECTS
+
+// Change centre of radial effects to be centred further left within the alpha keys. See g_led_config for positions.
+// Original: { 112, 32 }, centered on B: { 94, 32 }, centered on H: { 101, 32 }
+#define RGB_MATRIX_CENTER { 101, 32 }
 
 // Set default animation mode
 #undef RGB_MATRIX_STARTUP_MODE
