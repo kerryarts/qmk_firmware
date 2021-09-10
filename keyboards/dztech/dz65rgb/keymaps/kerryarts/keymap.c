@@ -13,9 +13,9 @@
 // #define HSV_ORANGE       28, 255, 255 //  40   #FFAA00 Defined in color.h
 
 #define KEY_COUNT 68
+#define ADJ_NO_VALUE 1 // Represents no value from the adjustment layer. Safe, because its mathmetically it can't be generated.
 #define HUE_INC 9 // Roughly matches 12°, same division as the hue picker
 
-const HSV HSV_NONE = { .h = 0, .s = 0, .v = 0};
 /*** TYPE DEF ***/
 
 // Copy to layers.c after auto generation
@@ -34,6 +34,8 @@ enum key_cap_color {
 };
 
 /*** CONSTS ***/
+
+const HSV HSV_NONE = { .h = 0, .s = 0, .v = 0};
 
 // Maps LED index to the color of the key cap in my key cap set
 const uint8_t key_cap_color_map[KEY_COUNT] = {
@@ -64,13 +66,17 @@ bool key_code_is_shiftable(uint16_t key_code) {
 
 /*** KEYBOARD FUNCS ***/
 
+// Returns the adjustment value at the given position, from 0-255
+// Internally scales based on increments of 12 degrees per key, then maps the range of 0-360 deg to 0-256
+// TODO: This is just dividing up the 256 range but with extra steps
 uint8_t get_adj_value_from_key_pos(keypos_t key_pos) {
-    uint16_t three_deg;
+    uint8_t three_deg;
     // W -> P
     if (key_pos.row == 1 && key_pos.col >= 2 && key_pos.col <= 11) {
         three_deg = 8 + ((key_pos.col - 2) * 12);
     }
     // A -> ;
+    // The range stops at L, so both A and ; will both return zero
     else if (key_pos.row == 2 && key_pos.col >= 1 && key_pos.col <= 11) {
         three_deg = 0 + ((key_pos.col - 1) * 12);
     }
@@ -79,7 +85,7 @@ uint8_t get_adj_value_from_key_pos(keypos_t key_pos) {
         three_deg = 4 + ((key_pos.col - 1) * 12);
     }
     else {
-        return 1;
+        return ADJ_NO_VALUE;
     }
 
     // Same as (deg/360) * 256, but avoids doing FP
@@ -206,7 +212,7 @@ void rgb_matrix_indicators_user(void) {
                 case CL_ADJ: ; // empty statement to satisfy compiler
                     uint8_t adj_val = get_adj_value_from_key_pos(key_pos);
 
-                    if (adj_val != 1) {
+                    if (adj_val != ADJ_NO_VALUE) {
                         HSV new_hsv = { .h = get_hue_from_adj_val(curr_hsv.h, adj_val), .s = curr_hsv.s, .v = curr_hsv.v };
                         RGB new_rgb = hsv_to_rgb(new_hsv);
                         rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
@@ -250,7 +256,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
             keypos_t key_pos = { .row = record->event.key.row, .col = record->event.key.col };
             uint8_t adj_val = get_adj_value_from_key_pos(key_pos);
 
-            if (adj_val != 1) {
+            if (adj_val != ADJ_NO_VALUE) {
                 HSV curr_hsv = rgb_matrix_get_hsv();
                 rgb_matrix_sethsv(get_hue_from_adj_val(curr_hsv.h, adj_val), curr_hsv.s, curr_hsv.v);
 
