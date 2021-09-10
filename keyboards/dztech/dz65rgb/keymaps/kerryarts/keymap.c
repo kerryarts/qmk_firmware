@@ -15,6 +15,7 @@
 #define KEY_COUNT 68
 #define ADJ_NO_VALUE 1 // Represents no value from the adjustment layer. Safe, because its mathmetically it can't be generated.
 #define HUE_INC 9 // Roughly matches 12°, same division as the hue picker
+#define HUE_PICKER_OFFSET ADJ_NO_VALUE // 0 to have the current hue at the left of the picer, 128 to centre. ADJ_NO_VALUE to disable.
 
 /*** TYPE DEF ***/
 
@@ -93,9 +94,12 @@ uint8_t get_adj_value_from_key_pos(keypos_t key_pos) {
 }
 
 uint8_t get_hue_from_adj_val(uint8_t curr_hue, uint8_t adj_val) {
-    // Offset the hue by the current hue + 50%
-    // This makes the current hue centered in the middle of the keyboard at the H key
-    return (curr_hue + 128 + adj_val) % 256;
+    if (HUE_PICKER_OFFSET == ADJ_NO_VALUE) {
+        return adj_val;
+    }
+
+    // Effectively sets the position of where curr_hue sits on the hue picker
+    return (curr_hue + COLOR_PICKER_OFFSET + adj_val) % 256;
 }
 
 void rgb_matrix_indicators_user(void) {
