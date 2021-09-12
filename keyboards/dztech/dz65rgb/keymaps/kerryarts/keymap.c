@@ -1,6 +1,15 @@
 #include QMK_KEYBOARD_H
 #include "layers.c"
 #include "print.h"
+#include "color.h"
+#include "keycode.h"
+#include "keyboard.h"
+#include "host.h"
+#include "action.h"
+#include "action_layer.h"
+#include "quantum_keycodes.h"
+#include "rgb_matrix.h"
+// #include "rgb_matrix_types.h"
 
 // TODO: Use these instead of straight RGB_RED and RGB_ORANGE
 // HSV (0-255 scaled)        H,   S,   V    Hue°  Hex
