@@ -118,12 +118,15 @@ void rgb_matrix_indicators_user(void) {
     HSV curr_hsv = rgb_matrix_get_hsv();
     RGB curr_rgb = hsv_to_rgb(curr_hsv);
 
+    // For CAPS LOCK or shift. Hue is SHIFTed forward.
     HSV shift_hsv = { .h = (curr_hsv.h + HUE_INC * 2) % 256, .s = curr_hsv.s, .v = curr_hsv.v };
     RGB shift_rgb = hsv_to_rgb(shift_hsv);
 
+    // For keys on the function layer. Hue is shifted back.
     HSV func_hsv = { .h = (curr_hsv.h + 256 - (HUE_INC * 2)) % 256, .s = curr_hsv.s, .v = curr_hsv.v };
     RGB func_rgb = hsv_to_rgb(func_hsv);
 
+    // For keys which control switching layers. Hue is opposite on the color wheel, for maximum contrast.
     HSV layer_hsv = { .h = (curr_hsv.h + 128) % 256, .s = curr_hsv.s, .v = curr_hsv.v };
     RGB layer_rgb = hsv_to_rgb(layer_hsv);
 
@@ -131,7 +134,7 @@ void rgb_matrix_indicators_user(void) {
         for (uint8_t key_col = 0; key_col < MATRIX_COLS; key_col++) {
             uint8_t led_index = g_led_config.matrix_co[key_row][key_col];
 
-            // Early exit if there is no LED at this col+row position
+            // Early exit if there is no LED (or key, really) at this col+row position
             if (led_index == NO_LED) {
                 continue;
             }
