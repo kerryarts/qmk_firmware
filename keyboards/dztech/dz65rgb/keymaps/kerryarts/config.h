@@ -13,7 +13,7 @@
 #define RGB_MATRIX_STARTUP_MODE RGB_MATRIX_SOLID_COLOR
 
 // Free up firmware space by disabling the RGB modes which are less interesting
-//// #define DISABLE_RGB_MATRIX_SOLID_COLOR            // KEEP THIS AS THE DEFAULT EFFECT
+// #define DISABLE_RGB_MATRIX_SOLID_COLOR            // KEEP THIS AS THE DEFAULT EFFECT
 #define DISABLE_RGB_MATRIX_ALPHAS_MODS               // Static dual hue, speed is hue for secondary hue
 // #define DISABLE_RGB_MATRIX_GRADIENT_UP_DOWN          // Static gradient top to bottom, speed controls how much gradient changes
 // #define DISABLE_RGB_MATRIX_GRADIENT_LEFT_RIGHT       // Static gradient left to right, speed controls how much gradient changes
