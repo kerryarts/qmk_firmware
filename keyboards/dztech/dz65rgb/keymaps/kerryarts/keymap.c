@@ -22,11 +22,7 @@
 // #define HSV_ORANGE       28, 255, 255 //  40   #FFAA00 Defined in color.h
 
 #define KEY_COUNT 68
-#define HUE_INVALID 1 // Represents no value from the hue picker. Safe, because its mathmetically it can't be generated.
-#define RGB_MODE_INVALID 255 // Represents no selection for the RGB mode
-#define BYTE_INVALID 1 // Represents no selection from the byte picket. Safe, because its mathmetically it can't be generated.
 #define HUE_INC 9 // Roughly matches 12°, same division as the hue picker
-#define HUE_PICKER_OFFSET HUE_INVALID // 0 to have the current hue at the left of the picer, 128 to centre. HUE_INVALID to disable.
 #define LED_INDEX_CAPS_LOCK 30
 
 /*** TYPE DEF ***/
@@ -88,7 +84,7 @@ bool key_code_is_shiftable(uint16_t key_code) {
 // Returns the hue value at the given position, from 0-255
 // Internally scales based on increments of 12 degrees per key, then maps the range of 0-360 deg to 0-256
 // TODO: This is just dividing up the 256 range but with extra steps
-uint8_t get_hue_from_key_pos(uint8_t curr_hue, keypos_t key_pos) {
+bool try_get_hue_from_key_pos(uint8_t curr_hue, keypos_t key_pos, uint8_t* hue) {
     uint8_t three_deg;
     // W -> P
     if (key_pos.row == 1 && key_pos.col >= 2 && key_pos.col <= 11) {
@@ -103,67 +99,66 @@ uint8_t get_hue_from_key_pos(uint8_t curr_hue, keypos_t key_pos) {
         three_deg = 4 + ((key_pos.col - 1) * 12);
     }
     else {
-        return HUE_INVALID;
+        return false;
     }
 
     // Same as (deg/360) * 256, but avoids doing FP
-    uint8_t new_hue = ((three_deg % 120) * 256) / 120;
-
-    if (HUE_PICKER_OFFSET == HUE_INVALID) {
-        return new_hue;
-    }
-
-    // Effectively sets the position of where curr_hue sits on the hue picker
-    return curr_hue + HUE_PICKER_OFFSET + new_hue;
+    *hue = ((three_deg % 120) * 256) / 120;
+    return true;
 }
 
-uint8_t get_byte_from_key_pos(keypos_t key_pos) {
+bool try_get_byte_from_key_pos(keypos_t key_pos, uint8_t* byte) {
     // Keys [1] to [+]
     // [+] ends up being 255.2, which gets truncated down to 255, the max byte value
     if (key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 12) {
         // Should actually be '* 23.2', but we multiply (then divide) by 10 to avoid doing fp
-        return ((key_pos.col - 1) * 232) / 10;
+        *byte = ((key_pos.col - 1) * 232) / 10;
+        return true;
     }
 
-    return BYTE_INVALID;
+    return false;
 }
 
-uint8_t get_rgb_mode_from_key_code(uint16_t key_code) {
+bool try_get_rgb_mode_from_key_code(uint16_t key_code, uint8_t* rgb_mode) {
     switch (key_code) {
         case KC_P: // [P]lain
-            return RGB_MATRIX_SOLID_COLOR;
+            *rgb_mode = RGB_MATRIX_SOLID_COLOR;
+            return true;
         case KC_G: // [G]radient
-            return RGB_MATRIX_GRADIENT_UP_DOWN;
-        // case KC_:
-        //     return RGB_MATRIX_GRADIENT_LEFT_RIGHT;
+            *rgb_mode = RGB_MATRIX_GRADIENT_UP_DOWN;
+            return true;
         case KC_T: // [T]op to bottom
-            return RGB_MATRIX_CYCLE_UP_DOWN;
+            *rgb_mode = RGB_MATRIX_CYCLE_UP_DOWN;
+            return true;
         case KC_L: // [L]eft to right
-            return RGB_MATRIX_RAINBOW_MOVING_CHEVRON;
+            *rgb_mode = RGB_MATRIX_RAINBOW_MOVING_CHEVRON;
+            return true;
         case KC_R: // [R]ainbow
-            return RGB_MATRIX_CYCLE_OUT_IN;
-        // case KC_:
-        //     return RGB_MATRIX_CYCLE_OUT_IN_DUAL;
+            *rgb_mode = RGB_MATRIX_CYCLE_OUT_IN;
+            return true;
         case KC_U: // [U]mbrella
-            return RGB_MATRIX_CYCLE_SPIRAL;
+            *rgb_mode = RGB_MATRIX_CYCLE_SPIRAL;
+            return true;
         case KC_M: // [M]ix
-            return RGB_MATRIX_DUAL_BEACON;
+            *rgb_mode = RGB_MATRIX_DUAL_BEACON;
+            return true;
         case KC_B: // [B]reating
-            return RGB_MATRIX_HUE_BREATHING;
+            *rgb_mode = RGB_MATRIX_HUE_BREATHING;
+            return true;
         case KC_H: // [H]eatmap
-            return RGB_MATRIX_TYPING_HEATMAP;
+            *rgb_mode = RGB_MATRIX_TYPING_HEATMAP;
+            return true;
         case KC_S: // [S]pot
-            return RGB_MATRIX_SOLID_REACTIVE_MULTIWIDE;
-        // case KC_:
-        //     return RGB_MATRIX_SOLID_REACTIVE_MULTICROSS;
+            *rgb_mode = RGB_MATRIX_SOLID_REACTIVE_MULTIWIDE;
+            return true;
         case KC_C: // [C]ross
-            return RGB_MATRIX_SOLID_REACTIVE_MULTINEXUS;
-        // case KC_:
-        //     return RGB_MATRIX_MULTISPLASH;
+            *rgb_mode = RGB_MATRIX_SOLID_REACTIVE_MULTINEXUS;
+            return true;
         case KC_W: // [W]ave
-            return RGB_MATRIX_SOLID_MULTISPLASH;
+            *rgb_mode = RGB_MATRIX_SOLID_MULTISPLASH;
+            return true;
         default:
-            return RGB_MODE_INVALID;
+            return false;
     }
 }
 
@@ -278,6 +273,7 @@ void rgb_matrix_indicators_user(void) {
                     uint8_t new_hue = curr_hsv.h;
                     uint8_t new_sat = curr_hsv.s;
                     uint8_t new_val = curr_hsv.v;
+
                     enum led_change { LC_OFF = 0, LC_NEW = 1, LC_NONE = 2 } led_change;
                     enum rgb_layer_mode visible_rgb_layer_mode = _rgb_layer_mode_visible ? _rgb_layer_mode : RLM_PREVIEW;
 
@@ -301,27 +297,22 @@ void rgb_matrix_indicators_user(void) {
                             break;
                         case RLM_MODE: ;
                             uint16_t key_code_on_base = keymap_key_to_keycode(CL_BASE, key_pos);
-                            uint8_t rgb_mode = get_rgb_mode_from_key_code(key_code_on_base);
-
-                            led_change = rgb_mode != RGB_MODE_INVALID;
+                            uint8_t temp;
+                            led_change = try_get_rgb_mode_from_key_code(key_code_on_base, &temp);
                             break;
                         case RLM_HUE: ;
-                            new_hue = get_hue_from_key_pos(curr_hsv.h, key_pos);
-                            led_change = new_hue != HUE_INVALID;
+                            led_change = try_get_hue_from_key_pos(curr_hsv.h, key_pos, &new_hue);
                             break;
                         case RLM_SPEED: ;
                             // Alter the lightness value for speed
-                            new_val = get_byte_from_key_pos(key_pos);
+                            led_change = try_get_byte_from_key_pos(key_pos, &new_val);
                             new_sat = 255;
-                            led_change = new_val != BYTE_INVALID;
                             break;
                         case RLM_SAT: ;
-                            new_sat = get_byte_from_key_pos(key_pos);
-                            led_change = new_sat != BYTE_INVALID;
+                            led_change = try_get_byte_from_key_pos(key_pos, &new_sat);
                             break;
                         case RLM_VAL: ;
-                            new_val = get_byte_from_key_pos(key_pos);
-                            led_change = new_val != BYTE_INVALID;
+                            led_change = try_get_byte_from_key_pos(key_pos, &new_val);
                             break;
                     }
 
@@ -353,6 +344,47 @@ void matrix_init_user(void) {
 void matrix_scan_user(void) {
 }
 
+bool process_ckc_rlm(keyrecord_t* record, enum rgb_layer_mode new_rgb_layer_mode) {
+    // Key Down
+    if (record->event.pressed) {
+        // If already in this mode, then toggle off
+        if (new_rgb_layer_mode == _rgb_layer_mode) {
+            _rgb_layer_mode = RLM_PREVIEW;
+        }
+        // Else switch to new mode
+        else {
+            _rgb_layer_mode = new_rgb_layer_mode;
+            _rgb_layer_mode_visible = false;
+            _rgb_layer_mode_changed = false;
+        }
+    }
+    // Key Up
+    else {
+        // If a change was made while the key was held, then we are done, so switch back
+        // This makes the mode toggling act like a momentary layer switch
+        if (_rgb_layer_mode_changed) {
+            _rgb_layer_mode = RLM_PREVIEW;
+        }
+        // Else toggle the mode specific lighting on if this is still our layer
+        // This makes the mode toggling act like a toggle layer switch
+        // TODO: Could probably actually just use the built-in layer switching for this, but it would require a new layer for each mode zzzzz
+        else if (new_rgb_layer_mode == _rgb_layer_mode) {
+            _rgb_layer_mode_visible = true;
+        }
+    }
+
+    // Key handled, do not continue processing
+    return false;
+}
+
+void handle_rlm_key_press(void) {
+    _rgb_layer_mode_changed = true;
+
+    if (_rgb_layer_mode_visible) {
+        _rgb_layer_mode = RLM_PREVIEW;
+    }
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     // The key code this key press is for on the BASE layer. Its easier to recognise which key is pressed using this.
     uint16_t key_code_on_base = keymap_key_to_keycode(CL_BASE, record->event.key);
@@ -364,63 +396,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     }
     #endif
 
+    // Custom Key Codes, handled on any layer
+    switch (keycode) {
+        case CKC_RLM_MODE:
+            return process_ckc_rlm(record, RLM_MODE);
+        case CKC_RLM_SPEED:
+            return process_ckc_rlm(record, RLM_SPEED);
+        case CKC_RLM_HUE:
+            return process_ckc_rlm(record, RLM_HUE);
+        case CKC_RLM_SAT:
+            return process_ckc_rlm(record, RLM_SAT);
+        case CKC_RLM_VAL:
+            return process_ckc_rlm(record, RLM_VAL);
+    }
+
+    // Layer specific key handling
     switch (get_highest_layer(layer_state)) {
         case CL_BASE:
             break;
         case CL_FUNC:
             break;
         case CL_RGB: ;
-            enum rgb_layer_mode new_rgb_layer_mode = 0;
-            switch (keycode) {
-                case CKC_RLM_MODE:
-                    new_rgb_layer_mode = RLM_MODE;
-                    break;
-                case CKC_RLM_SPEED:
-                    new_rgb_layer_mode = RLM_SPEED;
-                    break;
-                case CKC_RLM_HUE:
-                    new_rgb_layer_mode = RLM_HUE;
-                    break;
-                case CKC_RLM_SAT:
-                    new_rgb_layer_mode = RLM_SAT;
-                    break;
-                case CKC_RLM_VAL:
-                    new_rgb_layer_mode = RLM_VAL;
-                    break;
-            }
-
-            if (new_rgb_layer_mode > 0) {
-                // Key Down
-                if (record->event.pressed) {
-                    // If already in this mode, then toggle off
-                    if (new_rgb_layer_mode == _rgb_layer_mode) {
-                        _rgb_layer_mode = RLM_PREVIEW;
-                    }
-                    // Else switch to new mode
-                    else {
-                        _rgb_layer_mode = new_rgb_layer_mode;
-                        _rgb_layer_mode_visible = false;
-                        _rgb_layer_mode_changed = false;
-                    }
-                }
-                // Key Up
-                else {
-                    // If a change was made while the key was held, then we are done, so switch back
-                    // This makes the mode toggling act like a momentary layer switch
-                    if (_rgb_layer_mode_changed) {
-                        _rgb_layer_mode = RLM_PREVIEW;
-                    }
-                    // Else toggle the mode specific lighting on if this is still our layer
-                    // This makes the mode toggling act like a toggle layer switch
-                    // TODO: Could probably actually just use the built-in layer switching for this, but it would require a new layer for each mode zzzzz
-                    else if (new_rgb_layer_mode == _rgb_layer_mode) {
-                        _rgb_layer_mode_visible = true;
-                    }
-                }
-
-                return false;
-            }
-
             // On key down, make the change
             if (record->event.pressed) {
                 HSV curr_hsv = rgb_matrix_get_hsv();
@@ -429,67 +425,42 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                     case RLM_PREVIEW:
                         break;
                     case RLM_MODE: ;
-                        uint8_t rgb_mode = get_rgb_mode_from_key_code(key_code_on_base);
-
-                        if (rgb_mode != RGB_MODE_INVALID) {
+                        uint8_t rgb_mode;
+                        if (try_get_rgb_mode_from_key_code(key_code_on_base, &rgb_mode)) {
                             rgb_matrix_mode_noeeprom(rgb_mode);
-                            _rgb_layer_mode_changed = true;
-
-                            if (_rgb_layer_mode_visible) {
-                                _rgb_layer_mode = RLM_PREVIEW;
-                            }
+                            handle_rlm_key_press();
                             return false;
                         }
                         break;
                     case RLM_SPEED: ;
-                        uint8_t new_speed = get_byte_from_key_pos(record->event.key);
-
-                        if (new_speed != BYTE_INVALID) {
+                        uint8_t new_speed;
+                        if (try_get_byte_from_key_pos(record->event.key, &new_speed)) {
                             rgb_matrix_set_speed_noeeprom(new_speed);
-                            _rgb_layer_mode_changed = true;
-
-                            if (_rgb_layer_mode_visible) {
-                                _rgb_layer_mode = RLM_PREVIEW;
-                            }
+                            handle_rlm_key_press();
                             return false;
                         }
                         break;
                     case RLM_HUE: ;
-                        uint8_t new_hue = get_hue_from_key_pos(curr_hsv.h, record->event.key);
-
-                        if (new_hue != HUE_INVALID) {
+                        uint8_t new_hue;
+                        if (try_get_hue_from_key_pos(curr_hsv.h, record->event.key, &new_hue)) {
                             rgb_matrix_sethsv_noeeprom(new_hue, curr_hsv.s, curr_hsv.v);
-                            _rgb_layer_mode_changed = true;
-
-                            if (_rgb_layer_mode_visible) {
-                                _rgb_layer_mode = RLM_PREVIEW;
-                            }
+                            handle_rlm_key_press();
                             return false;
                         }
                         break;
                     case RLM_SAT: ;
-                        uint8_t new_sat = get_byte_from_key_pos(record->event.key);
-
-                        if (new_sat != BYTE_INVALID) {
+                        uint8_t new_sat;
+                        if (try_get_byte_from_key_pos(record->event.key, &new_sat)) {
                             rgb_matrix_sethsv_noeeprom(curr_hsv.h, new_sat, curr_hsv.v);
-                            _rgb_layer_mode_changed = true;
-
-                            if (_rgb_layer_mode_visible) {
-                                _rgb_layer_mode = RLM_PREVIEW;
-                            }
+                            handle_rlm_key_press();
                             return false;
                         }
                         break;
                     case RLM_VAL: ;
-                        uint8_t new_val = get_byte_from_key_pos(record->event.key);
-
-                        if (new_val != BYTE_INVALID) {
+                        uint8_t new_val;
+                        if (try_get_byte_from_key_pos(record->event.key, &new_val)) {
                             rgb_matrix_sethsv_noeeprom(curr_hsv.h, curr_hsv.s, new_val);
-                            _rgb_layer_mode_changed = true;
-
-                            if (_rgb_layer_mode_visible) {
-                                _rgb_layer_mode = RLM_PREVIEW;
-                            }
+                            handle_rlm_key_press();
                             return false;
                         }
                         break;
@@ -502,8 +473,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 
             break;
         case CL_SYS:
-            break;
-        default:
             break;
     }
 
@@ -524,8 +493,6 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             _rgb_layer_mode = RLM_PREVIEW;
             break;
         case CL_SYS:
-            break;
-        default:
             break;
     }
     return state;
