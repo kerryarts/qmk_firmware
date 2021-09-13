@@ -61,6 +61,7 @@ const uint8_t key_cap_color_map[KEY_COUNT] = {
 static enum rgb_layer_mode _rgb_layer_mode = RLM_PREVIEW;
 static bool _rgb_layer_mode_visible = false;
 static bool _rgb_layer_mode_changed = false;
+static uint16_t _pulse_timer = 0;
 
 /*** USER FUNC ***/
 
@@ -280,6 +281,7 @@ void rgb_matrix_indicators_user(void) {
 
                     enum led_change { LC_OFF = 0, LC_NEW = 1, LC_NONE = 2 } led_change;
                     enum rgb_layer_mode visible_rgb_layer_mode = _rgb_layer_mode_visible ? _rgb_layer_mode : RLM_PREVIEW;
+                    bool key_is_current_val = false;
 
                     switch (visible_rgb_layer_mode) {
                         case RLM_PREVIEW:
@@ -301,22 +303,29 @@ void rgb_matrix_indicators_user(void) {
                             break;
                         case RLM_MODE: ;
                             uint16_t key_code_on_base = keymap_key_to_keycode(CL_BASE, key_pos);
-                            uint8_t temp;
-                            led_change = try_get_rgb_mode_from_key_code(key_code_on_base, &temp);
-                            break;
-                        case RLM_HUE: ;
-                            led_change = try_get_hue_from_key_pos(curr_hsv.h, key_pos, &new_hue);
+                            uint8_t rgb_mode;
+                            led_change = try_get_rgb_mode_from_key_code(key_code_on_base, &rgb_mode);
+                            key_is_current_val = rgb_mode == rgb_matrix_get_mode();
+                            new_sat = 255;
+                            new_val = 255;
                             break;
                         case RLM_SPEED: ;
-                            // Alter the lightness value for speed
+                            // Alter the val value for speed
                             led_change = try_get_byte_from_key_pos(key_pos, &new_val);
+                            key_is_current_val = new_val == rgb_matrix_get_speed();
                             new_sat = 255;
+                            break;
+                        case RLM_HUE: ;
+                            led_change = try_get_hue_from_key_pos(key_pos, &new_hue);
+                            key_is_current_val = new_hue == curr_hsv.h;
                             break;
                         case RLM_SAT: ;
                             led_change = try_get_byte_from_key_pos(key_pos, &new_sat);
+                            key_is_current_val = new_sat == curr_hsv.s;
                             break;
                         case RLM_VAL: ;
                             led_change = try_get_byte_from_key_pos(key_pos, &new_val);
+                            key_is_current_val = new_val == curr_hsv.v;
                             break;
                     }
 
@@ -325,8 +334,23 @@ void rgb_matrix_indicators_user(void) {
                             rgb_matrix_set_color(led_index, RGB_OFF);
                             break;
                         case LC_NEW: ;
+                            if (key_is_current_val) {
+                                uint16_t time = timer_elapsed(_pulse_timer);
+                                // In the first half of the ~second, increase the val
+                                if (time % 1024 <= 512) {
+                                    new_val = time / 4;
+                                }
+                                else {
+                                    new_val = 255 - (time / 4);
+                                }
+
+                                // Force max saturation for visability
+                                new_sat = 255;
+                            }
+
                             HSV new_hsv = { .h = new_hue, .s = new_sat, .v = new_val };
                             RGB new_rgb = hsv_to_rgb(new_hsv);
+
                             rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
                             break;
                         case LC_NONE:
@@ -340,6 +364,7 @@ void rgb_matrix_indicators_user(void) {
 }
 
 void keyboard_post_init_user(void) {
+    _pulse_timer = timer_read();
 }
 
 void matrix_init_user(void) {
