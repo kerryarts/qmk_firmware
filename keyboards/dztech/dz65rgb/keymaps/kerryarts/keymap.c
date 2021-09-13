@@ -24,6 +24,7 @@
 #define KEY_COUNT 68
 #define HUE_INC 9 // Roughly matches 12°, same division as the hue picker
 #define LED_INDEX_CAPS_LOCK 30
+#define RGB_EDIT_BYTE_INC 23
 
 /*** TYPE DEF ***/
 
@@ -81,38 +82,41 @@ bool key_code_is_shiftable(uint16_t key_code) {
 
 /*** KEYBOARD FUNCS ***/
 
-// Returns the hue value at the given position, from 0-255
-// Internally scales based on increments of 12 degrees per key, then maps the range of 0-360 deg to 0-256
-// TODO: This is just dividing up the 256 range but with extra steps
-bool try_get_hue_from_key_pos(uint8_t curr_hue, keypos_t key_pos, uint8_t* hue) {
-    uint8_t three_deg;
+// Returns the hue value at the given key position
+bool try_get_hue_from_key_pos(keypos_t key_pos, uint8_t* hue) {
+    uint16_t key_num;
     // W -> P
     if (key_pos.row == 1 && key_pos.col >= 2 && key_pos.col <= 11) {
-        three_deg = 8 + ((key_pos.col - 2) * 12);
+        key_num = 2 + ((key_pos.col - 2) * 3);
     }
     // A -> ;
     else if (key_pos.row == 2 && key_pos.col >= 1 && key_pos.col <= 10) {
-        three_deg = 0 + ((key_pos.col - 1) * 12);
+        key_num = 0 + ((key_pos.col - 1) * 3);
     }
     // Z -> .
     else if (key_pos.row == 3 && key_pos.col >= 1 && key_pos.col <= 10) {
-        three_deg = 4 + ((key_pos.col - 1) * 12);
+        key_num = 1 + ((key_pos.col - 1) * 3);
     }
     else {
         return false;
     }
 
-    // Same as (deg/360) * 256, but avoids doing FP
-    *hue = ((three_deg % 120) * 256) / 120;
+    // Close enough to (key_num * (256 range / 30 keys)), but avoids doing FP
+    // Precision loss: from mid point onwards (key 15), value can be -1 from actual
+    *hue = (key_num * 85) / 10;
     return true;
 }
 
 bool try_get_byte_from_key_pos(keypos_t key_pos, uint8_t* byte) {
-    // Keys [1] to [+]
-    // [+] ends up being 255.2, which gets truncated down to 255, the max byte value
-    if (key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 12) {
-        // Should actually be '* 23.2', but we multiply (then divide) by 10 to avoid doing fp
-        *byte = ((key_pos.col - 1) * 232) / 10;
+    // Keys [1] to [-]
+    if (key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 11) {
+        *byte = ((key_pos.col - 1) * RGB_EDIT_BYTE_INC);
+        return true;
+    }
+
+    // Key [+]
+    if (key_pos.row == 0 && key_pos.col == 12) {
+        *byte = 255;
         return true;
     }
 
@@ -385,6 +389,45 @@ void handle_rlm_key_press(void) {
     }
 }
 
+void rgb_matrix_set_hue_noeeprom(uint8_t hue) {
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    rgb_matrix_sethsv_noeeprom(hue, curr_hsv.s, curr_hsv.v);
+}
+
+void rgb_matrix_set_sat_noeeprom(uint8_t sat) {
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    rgb_matrix_sethsv_noeeprom(curr_hsv.h, sat, curr_hsv.v);
+}
+
+void rgb_matrix_set_val_noeeprom(uint8_t val) {
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    rgb_matrix_sethsv_noeeprom(curr_hsv.h, curr_hsv.s, val);
+}
+
+uint8_t inc_edit_byte(uint8_t byte) {
+    if (byte >= 255 - RGB_EDIT_BYTE_INC - 2) {
+        return 255;
+    }
+    return byte + RGB_EDIT_BYTE_INC;
+}
+
+uint8_t dec_edit_byte(uint8_t byte) {
+    if (byte <= RGB_EDIT_BYTE_INC) {
+        return 0;
+    }
+    return byte - RGB_EDIT_BYTE_INC;
+}
+
+uint8_t inc_edit_hue(uint8_t byte) {
+    uint8_t pos = ((byte + 1) * 10) / 85;
+    return ((pos + 1) * 85) / 10;
+}
+
+uint8_t dec_edit_hue(uint8_t byte) {
+    uint8_t pos = ((byte + 1) * 10) / 85;
+    return ((pos - 1) * 85) / 10;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     // The key code this key press is for on the BASE layer. Its easier to recognise which key is pressed using this.
     uint16_t key_code_on_base = keymap_key_to_keycode(CL_BASE, record->event.key);
@@ -408,6 +451,57 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
             return process_ckc_rlm(record, RLM_SAT);
         case CKC_RLM_VAL:
             return process_ckc_rlm(record, RLM_VAL);
+
+        case CKC_MODE_INC:
+            if (record->event.pressed) {
+                rgb_matrix_step_noeeprom();
+            }
+            return false;
+        case CKC_MODE_DEC:
+            if (record->event.pressed) {
+                rgb_matrix_step_reverse_noeeprom();
+            }
+            return false;
+        case CKC_SPEED_INC:
+            if (record->event.pressed) {
+                rgb_matrix_set_speed_noeeprom(inc_edit_byte(rgb_matrix_get_speed()));
+            }
+            return false;
+        case CKC_SPEED_DEC:
+            if (record->event.pressed) {
+                rgb_matrix_set_speed_noeeprom(dec_edit_byte(rgb_matrix_get_speed()));
+            }
+            return false;
+        case CKC_HUE_INC:
+            if (record->event.pressed) {
+                rgb_matrix_set_hue_noeeprom(inc_edit_hue(rgb_matrix_get_hsv().h));
+            }
+            return false;
+        case CKC_HUE_DEC:
+            if (record->event.pressed) {
+                rgb_matrix_set_hue_noeeprom(dec_edit_hue(rgb_matrix_get_hsv().h));
+            }
+            return false;
+        case CKC_SAT_INC:
+            if (record->event.pressed) {
+                rgb_matrix_set_sat_noeeprom(inc_edit_byte(rgb_matrix_get_hsv().s));
+            }
+            return false;
+        case CKC_SAT_DEC:
+            if (record->event.pressed) {
+                rgb_matrix_set_sat_noeeprom(dec_edit_byte(rgb_matrix_get_hsv().s));
+            }
+            return false;
+        case CKC_VAL_INC:
+            if (record->event.pressed) {
+                rgb_matrix_set_val_noeeprom(inc_edit_byte(rgb_matrix_get_hsv().v));
+            }
+            return false;
+        case CKC_VAL_DEC:
+            if (record->event.pressed) {
+                rgb_matrix_set_val_noeeprom(dec_edit_byte(rgb_matrix_get_hsv().v));
+            }
+            return false;
     }
 
     // Layer specific key handling
@@ -419,8 +513,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
         case CL_RGB: ;
             // On key down, make the change
             if (record->event.pressed) {
-                HSV curr_hsv = rgb_matrix_get_hsv();
-
                 switch (_rgb_layer_mode) {
                     case RLM_PREVIEW:
                         break;
@@ -442,8 +534,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                         break;
                     case RLM_HUE: ;
                         uint8_t new_hue;
-                        if (try_get_hue_from_key_pos(curr_hsv.h, record->event.key, &new_hue)) {
-                            rgb_matrix_sethsv_noeeprom(new_hue, curr_hsv.s, curr_hsv.v);
+                        if (try_get_hue_from_key_pos(record->event.key, &new_hue)) {
+                            rgb_matrix_set_hue_noeeprom(new_hue);
                             handle_rlm_key_press();
                             return false;
                         }
@@ -451,7 +543,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                     case RLM_SAT: ;
                         uint8_t new_sat;
                         if (try_get_byte_from_key_pos(record->event.key, &new_sat)) {
-                            rgb_matrix_sethsv_noeeprom(curr_hsv.h, new_sat, curr_hsv.v);
+                            rgb_matrix_set_sat_noeeprom(new_sat);
                             handle_rlm_key_press();
                             return false;
                         }
@@ -459,7 +551,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                     case RLM_VAL: ;
                         uint8_t new_val;
                         if (try_get_byte_from_key_pos(record->event.key, &new_val)) {
-                            rgb_matrix_sethsv_noeeprom(curr_hsv.h, curr_hsv.s, new_val);
+                            rgb_matrix_set_val_noeeprom(new_val);
                             handle_rlm_key_press();
                             return false;
                         }
