@@ -22,9 +22,10 @@
 // #define HSV_ORANGE       28, 255, 255 //  40   #FFAA00 Defined in color.h
 
 #define KEY_COUNT 68
-#define HUE_INC 9 // Roughly matches 12°, same division as the hue picker
+#define EDIT_HUE_KEY_COUNT 30
+#define EDIT_BYTE_KEY_COUNT 12
+#define HUE_INC 9 // Roughly matches the divisions used by the EDIT HUE
 #define LED_INDEX_CAPS_LOCK 30
-#define RGB_EDIT_BYTE_INC 23
 
 /*** TYPE DEF ***/
 
@@ -57,6 +58,16 @@ const uint8_t key_cap_color_map[KEY_COUNT] = {
     KC_GRAY  , KC_GRAY , KC_GRAY ,                     KC_WHITE,                               KC_GRAY , KC_GRAY , KC_GRAY , KC_ORANGE, KC_ORANGE, KC_ORANGE
 };
 
+const uint8_t key_num_to_edit_hue[EDIT_HUE_KEY_COUNT] = {
+    0, 8, 17, 25, 34, 42, 51, 59, 68, 76,
+    85, 93, 102, 110, 119, 128, 136, 145, 153, 162,
+    170, 179, 187, 196, 204, 213, 221, 230, 238, 247
+};
+
+const uint8_t key_num_to_edit_byte[EDIT_BYTE_KEY_COUNT] = {
+    0, 23, 46, 69, 92, 115, 139, 162, 185, 208, 231, 255
+};
+
 /*** FIELDS ***/
 static enum rgb_layer_mode _rgb_layer_mode = RLM_PREVIEW;
 static bool _rgb_layer_mode_visible = false;
@@ -83,18 +94,25 @@ bool key_code_is_shiftable(uint16_t key_code) {
 
 /*** KEYBOARD FUNCS ***/
 
-// Returns the hue value at the given key position
+uint8_t get_edit_hue_from_key_num(uint8_t key_num) {
+    return key_num_to_edit_hue[key_num % EDIT_HUE_KEY_COUNT];
+}
+
+uint8_t get_key_num_from_edit_hue(uint8_t hue) {
+    return ((hue + 1) * 10) / 85;
+}
+
 bool try_get_hue_from_key_pos(keypos_t key_pos, uint8_t* hue) {
     uint16_t key_num;
-    // W -> P
+    // W -> [
     if (key_pos.row == 1 && key_pos.col >= 2 && key_pos.col <= 11) {
         key_num = 2 + ((key_pos.col - 2) * 3);
     }
-    // A -> ;
-    else if (key_pos.row == 2 && key_pos.col >= 1 && key_pos.col <= 10) {
+    // A -> '
+    else if (key_pos.row == 2 && key_pos.col >= 1 && key_pos.col <= 11) {
         key_num = 0 + ((key_pos.col - 1) * 3);
     }
-    // Z -> .
+    // Z -> /
     else if (key_pos.row == 3 && key_pos.col >= 1 && key_pos.col <= 10) {
         key_num = 1 + ((key_pos.col - 1) * 3);
     }
@@ -102,22 +120,22 @@ bool try_get_hue_from_key_pos(keypos_t key_pos, uint8_t* hue) {
         return false;
     }
 
-    // Close enough to (key_num * (256 range / 30 keys)), but avoids doing FP
-    // Precision loss: from mid point onwards (key 15), value can be -1 from actual
-    *hue = (key_num * 85) / 10;
+    *hue = get_edit_hue_from_key_num(key_num);
     return true;
 }
 
-bool try_get_byte_from_key_pos(keypos_t key_pos, uint8_t* byte) {
-    // Keys [1] to [-]
-    if (key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 11) {
-        *byte = ((key_pos.col - 1) * RGB_EDIT_BYTE_INC);
-        return true;
-    }
+uint8_t get_edit_byte_from_key_num(uint8_t key_num) {
+    return key_num_to_edit_byte[key_num % EDIT_BYTE_KEY_COUNT];
+}
 
-    // Key [+]
-    if (key_pos.row == 0 && key_pos.col == 12) {
-        *byte = 255;
+uint8_t get_key_num_from_edit_byte(uint8_t byte) {
+    return byte / 23;
+}
+
+bool try_get_byte_from_key_pos(keypos_t key_pos, uint8_t* byte) {
+    // Keys [1] to [+]
+    if (key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 12) {
+        *byte = get_edit_byte_from_key_num(key_pos.col - 1);
         return true;
     }
 
@@ -432,27 +450,34 @@ void rgb_matrix_set_val_noeeprom(uint8_t val) {
 }
 
 uint8_t inc_edit_byte(uint8_t byte) {
-    if (byte >= 255 - RGB_EDIT_BYTE_INC - 2) {
-        return 255;
-    }
-    return byte + RGB_EDIT_BYTE_INC;
+    uint8_t key_num = get_key_num_from_edit_byte(byte) + 1;
+    return get_edit_byte_from_key_num(key_num );
 }
 
 uint8_t dec_edit_byte(uint8_t byte) {
-    if (byte <= RGB_EDIT_BYTE_INC) {
-        return 0;
+    uint8_t key_num = get_key_num_from_edit_byte(byte);
+    if (key_num != 0) {
+        key_num--;
     }
-    return byte - RGB_EDIT_BYTE_INC;
+    return get_edit_byte_from_key_num(key_num);
 }
 
-uint8_t inc_edit_hue(uint8_t byte) {
-    uint8_t pos = ((byte + 1) * 10) / 85;
-    return ((pos + 1) * 85) / 10;
+uint8_t inc_edit_hue(uint8_t hue) {
+    uint8_t key_num = get_key_num_from_edit_hue(hue) + 1;
+    return get_edit_hue_from_key_num(key_num);
 }
 
-uint8_t dec_edit_hue(uint8_t byte) {
-    uint8_t pos = ((byte + 1) * 10) / 85;
-    return ((pos - 1) * 85) / 10;
+uint8_t dec_edit_hue(uint8_t hue) {
+    uint8_t key_num = get_key_num_from_edit_hue(hue);
+    if (key_num != 0) {
+        key_num--;
+    }
+    else {
+        key_num = EDIT_HUE_KEY_COUNT - 1;
+    }
+    return get_edit_hue_from_key_num(key_num);
+}
+
 // Stolen from rgb_matrix.c
 void stolen_eeconfig_read_rgb_matrix(void) {
     eeprom_read_block(&rgb_matrix_config, EECONFIG_RGB_MATRIX, sizeof(rgb_matrix_config));
