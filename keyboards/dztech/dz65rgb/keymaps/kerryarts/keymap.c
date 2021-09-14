@@ -335,13 +335,15 @@ void rgb_matrix_indicators_user(void) {
                             break;
                         case LC_NEW: ;
                             if (key_is_current_val) {
-                                uint16_t time = timer_elapsed(_pulse_timer);
-                                // In the first half of the ~second, increase the val
-                                if (time % 1024 <= 512) {
-                                    new_val = time / 4;
+                                uint16_t tick = timer_elapsed(_pulse_timer) % 512;
+
+                                // Over ~1/4 second, increase the val from 0 to 255
+                                if (tick < 256) {
+                                    new_val = tick;
                                 }
+                                // Then decrease it from 255 to 0
                                 else {
-                                    new_val = 255 - (time / 4);
+                                    new_val = 255 - (tick - 256);
                                 }
 
                                 // Force max saturation for visability
