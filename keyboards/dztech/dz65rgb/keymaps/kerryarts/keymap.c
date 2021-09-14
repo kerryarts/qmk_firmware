@@ -11,16 +11,6 @@
 #include "rgb_matrix.h"
 // #include "rgb_matrix_types.h"
 
-// TODO: Use these instead of straight RGB_RED and RGB_ORANGE
-// HSV (0-255 scaled)        H,   S,   V    Hue°  Hex
-// #define HSV_RED           0, 255, 255 //   0   #FF0000 Defined in color.h
-#define HSV_RED_OR          11, 255, 255 //  15   #FF4000 Red-orange mix
-#define HSV_INTER_OR        13, 255, 255 //  19   #FF4F00 International orange, the best orange
-#define HSV_INTER2_OR       14, 255, 255 //  19   #FF4F00 International orange, rounded to a multiple of 7
-#define HSV_SAFETY_OR       20, 255, 255 //  28   #FF7900 Safety orange
-#define HSV_FULL_OR         21, 255, 255 //  30   #FF8000 Full orange
-// #define HSV_ORANGE       28, 255, 255 //  40   #FFAA00 Defined in color.h
-
 #define KEY_COUNT 68
 #define EDIT_HUE_KEY_COUNT 30
 #define EDIT_BYTE_KEY_COUNT 12
