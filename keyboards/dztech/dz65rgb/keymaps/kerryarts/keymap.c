@@ -17,6 +17,8 @@
 #define HUE_INC 9 // Roughly matches the divisions used by the EDIT HUE
 #define LED_INDEX_CAPS_LOCK 30
 
+
+
 /*** TYPE DEF ***/
 
 // TODO: rename, key codes also have the KC prefix
@@ -34,6 +36,8 @@ enum rgb_layer_mode {
     RLM_SAT,
     RLM_VAL
 };
+
+
 
 /*** CONSTS ***/
 
@@ -58,13 +62,18 @@ const uint8_t key_num_to_edit_byte[EDIT_BYTE_KEY_COUNT] = {
     0, 23, 46, 69, 92, 115, 139, 162, 185, 208, 231, 255
 };
 
+
+
 /*** FIELDS ***/
+
 static enum rgb_layer_mode _rgb_layer_mode = RLM_PREVIEW;
 static bool _rgb_layer_mode_visible = false;
 static bool _rgb_layer_mode_changed = false;
 static uint16_t _pulse_timer = 0;
 
-/*** USER FUNC ***/
+
+
+/*** HELPERS ***/
 
 // Returns true if they can be modified by the shift or CAPS LOCK key
 bool key_code_is_shiftable(uint16_t key_code) {
@@ -82,7 +91,14 @@ bool key_code_is_shiftable(uint16_t key_code) {
         || key_code == KC_SLASH;
 }
 
-/*** KEYBOARD FUNCS ***/
+// Stolen from rgb_matrix.c
+void stolen_eeconfig_read_rgb_matrix(void) {
+    eeprom_read_block(&rgb_matrix_config, EECONFIG_RGB_MATRIX, sizeof(rgb_matrix_config));
+}
+
+
+
+/*** EDIT HUE FUNCTIONS ***/
 
 uint8_t get_edit_hue_from_key_num(uint8_t key_num) {
     return key_num_to_edit_hue[key_num % EDIT_HUE_KEY_COUNT];
@@ -114,6 +130,39 @@ bool try_get_hue_from_key_pos(keypos_t key_pos, uint8_t* hue) {
     return true;
 }
 
+uint8_t inc_edit_hue(uint8_t hue) {
+    uint8_t key_num = get_key_num_from_edit_hue(hue) + 1;
+    return get_edit_hue_from_key_num(key_num);
+}
+
+uint8_t dec_edit_hue(uint8_t hue) {
+    uint8_t key_num = get_key_num_from_edit_hue(hue);
+    if (key_num != 0) {
+        key_num--;
+    }
+    else {
+        key_num = EDIT_HUE_KEY_COUNT - 1;
+    }
+    return get_edit_hue_from_key_num(key_num);
+}
+
+void rgb_matrix_set_hue_noeeprom(uint8_t hue) {
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    rgb_matrix_sethsv_noeeprom(hue, curr_hsv.s, curr_hsv.v);
+}
+
+void rgb_matrix_set_sat_noeeprom(uint8_t sat) {
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    rgb_matrix_sethsv_noeeprom(curr_hsv.h, sat, curr_hsv.v);
+}
+
+void rgb_matrix_set_val_noeeprom(uint8_t val) {
+    HSV curr_hsv = rgb_matrix_get_hsv();
+    rgb_matrix_sethsv_noeeprom(curr_hsv.h, curr_hsv.s, val);
+}
+
+/*** EDIT BYTE FUNCTIONS ***/
+
 uint8_t get_edit_byte_from_key_num(uint8_t key_num) {
     return key_num_to_edit_byte[key_num % EDIT_BYTE_KEY_COUNT];
 }
@@ -131,6 +180,23 @@ bool try_get_byte_from_key_pos(keypos_t key_pos, uint8_t* byte) {
 
     return false;
 }
+
+uint8_t inc_edit_byte(uint8_t byte) {
+    uint8_t key_num = get_key_num_from_edit_byte(byte) + 1;
+    return get_edit_byte_from_key_num(key_num );
+}
+
+uint8_t dec_edit_byte(uint8_t byte) {
+    uint8_t key_num = get_key_num_from_edit_byte(byte);
+    if (key_num != 0) {
+        key_num--;
+    }
+    return get_edit_byte_from_key_num(key_num);
+}
+
+
+
+/*** EDIT MODE FUNCTIONS ***/
 
 bool try_get_rgb_mode_from_key_code(uint16_t key_code, uint8_t* rgb_mode) {
     switch (key_code) {
@@ -174,6 +240,10 @@ bool try_get_rgb_mode_from_key_code(uint16_t key_code, uint8_t* rgb_mode) {
             return false;
     }
 }
+
+
+
+/*** KEYBOARD HOOKS ***/
 
 void rgb_matrix_indicators_user(void) {
     bool caps_lock_on = host_keyboard_led_state().caps_lock;
@@ -422,55 +492,6 @@ void handle_rlm_key_press(void) {
     if (_rgb_layer_mode_visible) {
         _rgb_layer_mode = RLM_PREVIEW;
     }
-}
-
-void rgb_matrix_set_hue_noeeprom(uint8_t hue) {
-    HSV curr_hsv = rgb_matrix_get_hsv();
-    rgb_matrix_sethsv_noeeprom(hue, curr_hsv.s, curr_hsv.v);
-}
-
-void rgb_matrix_set_sat_noeeprom(uint8_t sat) {
-    HSV curr_hsv = rgb_matrix_get_hsv();
-    rgb_matrix_sethsv_noeeprom(curr_hsv.h, sat, curr_hsv.v);
-}
-
-void rgb_matrix_set_val_noeeprom(uint8_t val) {
-    HSV curr_hsv = rgb_matrix_get_hsv();
-    rgb_matrix_sethsv_noeeprom(curr_hsv.h, curr_hsv.s, val);
-}
-
-uint8_t inc_edit_byte(uint8_t byte) {
-    uint8_t key_num = get_key_num_from_edit_byte(byte) + 1;
-    return get_edit_byte_from_key_num(key_num );
-}
-
-uint8_t dec_edit_byte(uint8_t byte) {
-    uint8_t key_num = get_key_num_from_edit_byte(byte);
-    if (key_num != 0) {
-        key_num--;
-    }
-    return get_edit_byte_from_key_num(key_num);
-}
-
-uint8_t inc_edit_hue(uint8_t hue) {
-    uint8_t key_num = get_key_num_from_edit_hue(hue) + 1;
-    return get_edit_hue_from_key_num(key_num);
-}
-
-uint8_t dec_edit_hue(uint8_t hue) {
-    uint8_t key_num = get_key_num_from_edit_hue(hue);
-    if (key_num != 0) {
-        key_num--;
-    }
-    else {
-        key_num = EDIT_HUE_KEY_COUNT - 1;
-    }
-    return get_edit_hue_from_key_num(key_num);
-}
-
-// Stolen from rgb_matrix.c
-void stolen_eeconfig_read_rgb_matrix(void) {
-    eeprom_read_block(&rgb_matrix_config, EECONFIG_RGB_MATRIX, sizeof(rgb_matrix_config));
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
