@@ -453,6 +453,9 @@ uint8_t inc_edit_hue(uint8_t byte) {
 uint8_t dec_edit_hue(uint8_t byte) {
     uint8_t pos = ((byte + 1) * 10) / 85;
     return ((pos - 1) * 85) / 10;
+// Stolen from rgb_matrix.c
+void stolen_eeconfig_read_rgb_matrix(void) {
+    eeprom_read_block(&rgb_matrix_config, EECONFIG_RGB_MATRIX, sizeof(rgb_matrix_config));
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
@@ -479,6 +482,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
         case CKC_RLM_VAL:
             return process_ckc_rlm(record, RLM_VAL);
 
+        case CKC_RGB_TOG:
+            if (record->event.pressed) {
+                rgb_matrix_toggle_noeeprom();
+            }
+            return false;
+        case CKC_RGB_SAVE:
+            if (record->event.pressed) {
+                eeconfig_update_rgb_matrix();
+            }
+            return false;
+        case CKC_RGB_LOAD:
+            if (record->event.pressed) {
+                stolen_eeconfig_read_rgb_matrix();
+            }
+            return false;
         case CKC_MODE_INC:
             if (record->event.pressed) {
                 rgb_matrix_step_noeeprom();

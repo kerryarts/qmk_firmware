@@ -18,6 +18,9 @@
 // Key [7] of the EDIT BYTE keys
 #define RGB_MATRIX_STARTUP_SPD 139
 
+// We use our own custom key codes for RGB. Free up firmware space by disabling the built in ones.
+#define RGB_MATRIX_DISABLE_KEYCODES
+
 // Free up firmware space by disabling the RGB modes which are less interesting
 // #define DISABLE_RGB_MATRIX_SOLID_COLOR            //
 #define DISABLE_RGB_MATRIX_ALPHAS_MODS               // Static dual hue, speed is hue for secondary hue
