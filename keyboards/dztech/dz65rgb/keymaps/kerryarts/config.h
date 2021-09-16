@@ -1,6 +1,13 @@
 // TODO: This probably removes the need to have NKRO keys mapped
 #define FORCE_NKRO
 
+// Do not allow one macro to contain the other macro
+#define DYNAMIC_MACRO_NO_NESTING
+
+// This normally defaults to 128, but it was causing issues on this board. TODO: Investigate.
+// Note that the number of keypresses is actually half this (1 each for keydown and keyup)
+#define DYNAMIC_MACRO_SIZE 64
+
 // Required for DIGITAL_RAIN and TYPING_HEATMAP
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 

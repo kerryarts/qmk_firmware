@@ -9,13 +9,13 @@
 #include "action_layer.h"
 #include "quantum_keycodes.h"
 #include "rgb_matrix.h"
+// #include "process_tap_dance.h"
 // #include "rgb_matrix_types.h"
 
 #define KEY_COUNT 68
 #define EDIT_HUE_KEY_COUNT 30
 #define EDIT_BYTE_KEY_COUNT 12
 #define HUE_INC 9 // Roughly matches the divisions used by the EDIT HUE
-#define LED_INDEX_CAPS_LOCK 30
 
 
 
@@ -26,6 +26,13 @@ enum key_cap_color {
     KC_ORANGE = 1,
     KC_GRAY,
     KC_WHITE
+};
+
+enum macro_state {
+    MS_NONE = 1,
+    MS_RECORDING,
+    MS_RECORDING_FULL,
+    MS_PLAYING
 };
 
 enum rgb_layer_mode {
@@ -64,6 +71,10 @@ const uint8_t key_num_to_edit_byte[EDIT_BYTE_KEY_COUNT] = {
 
 
 
+
+qk_tap_dance_action_t tap_dance_actions[] = {
+};
+
 /*** FIELDS ***/
 
 static enum rgb_layer_mode _rgb_layer_mode = RLM_PREVIEW;
@@ -71,6 +82,8 @@ static bool _rgb_layer_mode_visible = false;
 static bool _rgb_layer_mode_changed = false;
 static uint16_t _pulse_timer = 0;
 
+static enum macro_state _macro_state = MS_NONE;
+static bool _is_macro_1 = false;
 
 
 /*** HELPERS ***/
@@ -94,6 +107,18 @@ bool key_code_is_shiftable(uint16_t key_code) {
 // Stolen from rgb_matrix.c
 void stolen_eeconfig_read_rgb_matrix(void) {
     eeprom_read_block(&rgb_matrix_config, EECONFIG_RGB_MATRIX, sizeof(rgb_matrix_config));
+}
+
+HSV pulse_hue(uint8_t hue) {
+    uint16_t tick = timer_elapsed(_pulse_timer) % 512;
+
+    // Over ~1/4 second
+    uint8_t val = tick < 256
+        ? tick // Increase the val from 0 to 255
+        : 255 - (tick - 256); // Then decrease it from 255 to 0
+
+    // Force max saturation for visability
+    return (HSV) { .h = hue, .s = 255, .v = val };
 }
 
 
@@ -287,7 +312,40 @@ void rgb_matrix_indicators_user(void) {
             uint16_t key_code = keymap_key_to_keycode(layer_index, key_pos);
             bool key_code_is_mapped = key_code >= KC_A; // Excludes KC_NO, KC_ROLL_OVER, KC_POST_FAIL, KC_UNDEFINED
             bool key_code_is_layer = key_code >= QK_LAYER_TAP && key_code <= QK_LAYER_TAP_TOGGLE_MAX; // TODO: The comment in quantum_keycodes.h said not to use these directly...shhh don't tell anyone
-            bool key_code_is_media = (key_code >= KC_AUDIO_MUTE && key_code <= KC_MEDIA_EJECT) || key_code == KC_MEDIA_FAST_FORWARD || key_code == KC_MEDIA_REWIND;
+            bool key_code_is_standard = key_code >= KC_A && key_code <= KC_RGUI; // Keys on a standard keyboard
+            bool key_code_is_macro = key_code >= DYN_REC_START1 && key_code <= DYN_MACRO_PLAY2;
+
+            // Highlight the active macro key on any layer when recording or playing back a macro
+            switch (_macro_state) {
+                case MS_NONE:
+                    break;
+                case MS_RECORDING:
+                    if ((led_index == LED_INDEX_MACRO_REC_1 && _is_macro_1) || (led_index == LED_INDEX_MACRO_REC_2 && !_is_macro_1)) {
+                        HSV macro_hsv = pulse_hue(func_hsv.h);
+                        RGB macro_rgb = hsv_to_rgb(macro_hsv);
+                        rgb_matrix_set_color(led_index, macro_rgb.r, macro_rgb.g, macro_rgb.b);
+                        continue;
+                    }
+                    break;
+                case MS_RECORDING_FULL:
+                    if ((led_index == LED_INDEX_MACRO_REC_1 && _is_macro_1) || (led_index == LED_INDEX_MACRO_REC_2 && !_is_macro_1)) {
+                        rgb_matrix_set_color(led_index, func_rgb.r, func_rgb.g, func_rgb.b);
+                        continue;
+                    }
+                    break;
+                case MS_PLAYING:
+                    if ((led_index == LED_INDEX_MACRO_PLAY_1 && _is_macro_1) || (led_index == LED_INDEX_MACRO_PLAY_2 && !_is_macro_1)) {
+                        rgb_matrix_set_color(led_index, func_rgb.r, func_rgb.g, func_rgb.b);
+                        continue;
+                    }
+                    break;
+            }
+
+            // If recording or playing back a macro, and this key wasn't considered 'active' above, turn it off
+            if (_macro_state != MS_NONE && key_code_is_macro) {
+                rgb_matrix_set_color(led_index, RGB_OFF);
+                continue;
+            }
 
             // On anything but the base layer, highlight layer switch keys
             if (layer_index != CL_BASE && key_code_is_layer) {
@@ -337,11 +395,11 @@ void rgb_matrix_indicators_user(void) {
                     if (!key_code_is_mapped) {
                         rgb_matrix_set_color(led_index, RGB_OFF);
                     }
-                    else if (key_code_is_media) {
-                        rgb_matrix_set_color(led_index, func_rgb.r, func_rgb.g, func_rgb.b);
+                    else if (key_code_is_standard) {
+                        rgb_matrix_set_color(led_index, curr_rgb.r, curr_rgb.g, curr_rgb.b);
                     }
                     else {
-                        rgb_matrix_set_color(led_index, curr_rgb.r, curr_rgb.g, curr_rgb.b);
+                        rgb_matrix_set_color(led_index, func_rgb.r, func_rgb.g, func_rgb.b);
                     }
                     break;
                 case CL_SYS:
@@ -412,23 +470,10 @@ void rgb_matrix_indicators_user(void) {
                             rgb_matrix_set_color(led_index, RGB_OFF);
                             break;
                         case LC_NEW: ;
-                            if (key_is_current_val) {
-                                uint16_t tick = timer_elapsed(_pulse_timer) % 512;
+                            HSV new_hsv = key_is_current_val
+                                ? pulse_hue(new_hue)
+                                : (HSV) { .h = new_hue, .s = new_sat, .v = new_val };
 
-                                // Over ~1/4 second, increase the val from 0 to 255
-                                if (tick < 256) {
-                                    new_val = tick;
-                                }
-                                // Then decrease it from 255 to 0
-                                else {
-                                    new_val = 255 - (tick - 256);
-                                }
-
-                                // Force max saturation for visability
-                                new_sat = 255;
-                            }
-
-                            HSV new_hsv = { .h = new_hue, .s = new_sat, .v = new_val };
                             RGB new_rgb = hsv_to_rgb(new_hsv);
 
                             rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
@@ -583,6 +628,35 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                 rgb_matrix_set_val_noeeprom(dec_edit_byte(rgb_matrix_get_hsv().v));
             }
             return false;
+
+        case DYN_REC_START1:
+            if (record->event.pressed) {
+                _is_macro_1 = true;
+                _macro_state = MS_RECORDING;
+                return true; // We still want the macro to get processed
+            }
+            break;
+        case DYN_REC_START2:
+            if (record->event.pressed) {
+                _is_macro_1 = false;
+                _macro_state = MS_RECORDING;
+                return true;
+            }
+            break;
+        case DYN_MACRO_PLAY1:
+            if (record->event.pressed) {
+                _is_macro_1 = true;
+                _macro_state = MS_PLAYING;
+                return true;
+            }
+            break;
+        case DYN_MACRO_PLAY2:
+            if (record->event.pressed) {
+                _is_macro_1 = false;
+                _macro_state = MS_PLAYING;
+                return true;
+            }
+            break;
     }
 
     // Layer specific key handling
@@ -669,4 +743,24 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             break;
     }
     return state;
+}
+
+// Called when the macro recording is started
+void dynamic_macro_record_start_user(void) {
+    // Handled in process_record_user() instead
+}
+
+// Called when the macro recording has ended
+void dynamic_macro_record_end_user(int8_t direction) {
+    _macro_state = MS_NONE;
+}
+
+// Called when the macro has finished playing
+void dynamic_macro_play_user(int8_t direction) {
+    _macro_state = MS_NONE;
+}
+
+// Called when the macro is full
+void dynamic_macro_record_key_user(int8_t direction, keyrecord_t *record) {
+    _macro_state = MS_RECORDING_FULL;
 }
