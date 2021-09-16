@@ -8,6 +8,9 @@
 // Note that the number of keypresses is actually half this (1 each for keydown and keyup)
 #define DYNAMIC_MACRO_SIZE 64
 
+// How long (in ms) before a tap becomes a hold. Default 200.
+#define TAPPING_TERM 150
+
 // Required for DIGITAL_RAIN and TYPING_HEATMAP
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 

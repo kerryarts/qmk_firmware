@@ -1,2 +1,3 @@
 CONSOLE_ENABLE = no # Console for debug
 DYNAMIC_MACRO_ENABLE = yes
+TAP_DANCE_ENABLE = yes
