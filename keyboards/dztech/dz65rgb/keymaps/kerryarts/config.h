@@ -8,6 +8,15 @@
 // Note that the number of keypresses is actually half this (1 each for keydown and keyup)
 #define DYNAMIC_MACRO_SIZE 64
 
+// Makes tap and hold keys trigger the hold if another key is pressed before releasing, even if it hasn't hit the `TAPPING_TERM`
+#define PERMISSIVE_HOLD
+
+// How many taps before triggering a layer toggle
+#define TAPPING_TOGGLE 2
+
+// Tapping this number of times holds the key until tapped once again
+#define ONESHOT_TAP_TOGGLE 2
+
 // How long (in ms) before a tap becomes a hold. Default 200.
 #define TAPPING_TERM 150
 
