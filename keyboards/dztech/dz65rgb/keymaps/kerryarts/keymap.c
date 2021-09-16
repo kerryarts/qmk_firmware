@@ -543,6 +543,14 @@ void matrix_init_user(void) {
 void matrix_scan_user(void) {
 }
 
+void suspend_power_down_user(void) {
+    // On PC suspend, ensure we are only on the base layer
+    // layer_move(CL_BASE);
+}
+
+void suspend_wakeup_init_user(void) {
+}
+
 bool process_ckc_rlm(keyrecord_t* record, enum rgb_layer_mode new_rgb_layer_mode) {
     // Key Down
     if (record->event.pressed) {
