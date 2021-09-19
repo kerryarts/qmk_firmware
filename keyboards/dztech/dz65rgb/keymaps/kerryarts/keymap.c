@@ -30,19 +30,9 @@ void rgb_matrix_indicators_user(void) {
     uint8_t layer_index = get_highest_layer(layer_state); // Highest layer, but there might be others enabled
 
     HSV curr_hsv = rgb_matrix_get_hsv();
-    RGB curr_rgb = hsv_to_rgb(curr_hsv);
-
-    // For CAPS LOCK or shift. Hue is SHIFTed forward.
-    HSV shift_hsv = { .h = (curr_hsv.h + HUE_INC * 2) % 256, .s = curr_hsv.s, .v = curr_hsv.v };
-    RGB shift_rgb = hsv_to_rgb(shift_hsv);
-
-    // For keys on the function layer. Hue is shifted back.
-    HSV func_hsv = { .h = (curr_hsv.h + 256 - (HUE_INC * 2)) % 256, .s = curr_hsv.s, .v = curr_hsv.v };
-    RGB func_rgb = hsv_to_rgb(func_hsv);
-
-    // For keys which control switching layers. Hue is opposite on the color wheel, for maximum contrast.
-    HSV layer_hsv = { .h = (curr_hsv.h + 128) % 256, .s = curr_hsv.s, .v = curr_hsv.v };
-    RGB layer_rgb = hsv_to_rgb(layer_hsv);
+    HSV shift_hsv = inc_hsv(curr_hsv);
+    HSV func_hsv = dec_hsv(curr_hsv);
+    HSV layer_hsv = inv_hsv(curr_hsv);
 
     for (uint8_t key_row = 0; key_row < MATRIX_ROWS; key_row++) {
         for (uint8_t key_col = 0; key_col < MATRIX_COLS; key_col++) {
@@ -53,91 +43,57 @@ void rgb_matrix_indicators_user(void) {
                 continue;
             }
 
-            HSV new_hsv = curr_hsv;
-
             enum key_cap_color key_cap_color = get_key_cap_color(led_index);
             keypos_t key_pos = { .row = key_row, .col = key_col };
             uint16_t key_code = keymap_key_to_keycode(layer_index, key_pos);
-            bool key_code_is_mapped = key_code >= KC_A; // Excludes KC_NO, KC_ROLL_OVER, KC_POST_FAIL, KC_UNDEFINED
-            bool key_code_is_layer = key_code >= QK_LAYER_TAP && key_code <= QK_LAYER_TAP_TOGGLE_MAX; // TODO: The comment in quantum_keycodes.h said not to use these directly...shhh don't tell anyone
-            bool key_code_is_standard = key_code >= KC_A && key_code <= KC_RGUI; // Keys on a standard keyboard
+            HSV new_hsv = curr_hsv;
 
             if (process_led_macro(led_index, key_pos, key_code, &new_hsv)) {
-                RGB new_rgb = hsv_to_rgb(new_hsv);
-                rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
-                continue;
+                // new_hsv set via pointer
             }
-
             // On anything but the base layer, highlight layer switch keys
-            if (layer_index != CL_BASE && key_code_is_layer) {
-                rgb_matrix_set_color(led_index, layer_rgb.r, layer_rgb.g, layer_rgb.b);
-                continue;
+            else if (layer_index != CL_BASE && is_key_code_layer(key_code)) {
+                new_hsv = layer_hsv;
             }
-
             // Always light the CAPS LOCK key when CAPS LOCK is on
-            if (caps_lock_on && led_index == LED_INDEX_CAPS_LOCK) {
-                rgb_matrix_set_color(led_index, shift_rgb.r, shift_rgb.g, shift_rgb.b);
-                continue;
+            else if (caps_lock_on && led_index == LED_INDEX_CAPS_LOCK) {
+                new_hsv = shift_hsv;
             }
-
             // If CAPS LOCK is turned on or shift is being held in an appropriate rgb mode, highlight the white 'shiftable' keys
             else if ((caps_lock_on || (shift_key_held && (rgb_mode_flags & RMF_HUE_SINGLE) > 0))
                 && key_cap_color == KC_WHITE
-                && (is_key_code_shiftable(key_code) || (layer_index == CL_FUNC && key_code_is_mapped))) {
-                // Shift the hue backward a bit
-                rgb_matrix_set_color(led_index, shift_rgb.r, shift_rgb.g, shift_rgb.b);
+                && is_key_code_shiftable(key_code)) {
+                new_hsv = shift_hsv;
+            }
+            else if (key_cap_color == KC_ORANGE) {
+                new_hsv = HSV_RED_ORANGE;
+            }
+            else if (layer_index == CL_RGB) {
+                if (!process_led_rgb_layer(led_index, key_pos, key_code, &new_hsv)) {
+                    continue;
+                }
+            }
+            else if (!is_key_code_mapped(key_code)) {
+                new_hsv = HSV_NONE;
+            }
+            // On the base layer, don't light up the gray keys or space (because they has poor light distribution)
+            else if (layer_index == CL_BASE && (key_cap_color == KC_GRAY || key_code == KC_SPACE)) {
+                new_hsv = HSV_NONE;
+            }
+            else if (is_key_code_func(key_code)) {
+                new_hsv = func_hsv;
+            }
+            // If not on the base layer, and a reactive RGB mode is enabled, highlight the mapped keys so we can see them
+            else if (layer_index != CL_BASE && (rgb_mode_flags & RMF_STLYE_REACTIVE) > 0) {
+                // Keep same HSV
+            }
+            else {
+                // Don't set a color, let the RGB mode apply
                 continue;
             }
 
-            // Else light the mapped key based on the current layer
-            switch (layer_index) {
-                case CL_BASE:
-                    // Don't light up the spacebar, since it has poor light distribution
-                    if (!key_code_is_mapped || key_code == KC_SPACE) {
-                        rgb_matrix_set_color(led_index, RGB_OFF);
-                    }
-                    else {
-                        switch (key_cap_color) {
-                            // Make the orange keys even more orange
-                            case KC_ORANGE:
-                                rgb_matrix_set_color(led_index, RGB_ORANGE);
-                                break;
-                            // Gray keys have poor light distribution, keep them off
-                            case KC_GRAY:
-                                rgb_matrix_set_color(led_index, RGB_OFF);
-                                break;
-                            case KC_WHITE:
-                                // Let the RGB mode be used
-                                break;
-                        }
-                    }
-                    break;
-                case CL_FUNC:
-                    if (!key_code_is_mapped) {
-                        rgb_matrix_set_color(led_index, RGB_OFF);
-                    }
-                    else if (key_code_is_standard) {
-                        rgb_matrix_set_color(led_index, curr_rgb.r, curr_rgb.g, curr_rgb.b);
-                    }
-                    else {
-                        rgb_matrix_set_color(led_index, func_rgb.r, func_rgb.g, func_rgb.b);
-                    }
-                    break;
-                case CL_SYS:
-                    if (!key_code_is_mapped) {
-                        rgb_matrix_set_color(led_index, RGB_OFF);
-                    }
-                    else {
-                        rgb_matrix_set_color(led_index, func_rgb.r, func_rgb.g, func_rgb.b);
-                    }
-                    break;
-                case CL_RGB: ;
-                    if (process_led_rgb_layer(led_index, key_pos, key_code, &new_hsv)) {
-                        RGB new_rgb = hsv_to_rgb(new_hsv);
-                        rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
-                    }
-                    break;
-            }
+            RGB new_rgb = hsv_to_rgb(new_hsv);
+            rgb_matrix_set_color(led_index, new_rgb.r, new_rgb.g, new_rgb.b);
         }
     }
 }
