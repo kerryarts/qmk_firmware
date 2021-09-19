@@ -29,6 +29,37 @@ HSV dec_hsv(HSV hsv) {
     return (HSV) { .h = (hsv.h + 256 - (HUE_INC * 2)) % 256, .s = hsv.s, .v = hsv.v };
 }
 
+HSV inv_hsv(HSV hsv) {
+    return (HSV) {.h = (hsv.h + 128) % 256, .s = hsv.s, .v = hsv.v};
+}
+
+enum rgb_mode_flags get_rgb_mode_flags(uint8_t rgb_mode) {
+    switch (rgb_mode) {
+        case RGB_MATRIX_SOLID_COLOR:
+        case RGB_MATRIX_GRADIENT_UP_DOWN:
+        case RGB_MATRIX_GRADIENT_LEFT_RIGHT:
+        case RGB_MATRIX_HUE_BREATHING:
+            return RMF_HUE_SINGLE | RMF_STYLE_STAIC;
+        case RGB_MATRIX_CYCLE_UP_DOWN:
+        case RGB_MATRIX_RAINBOW_MOVING_CHEVRON:
+        case RGB_MATRIX_CYCLE_OUT_IN:
+        case RGB_MATRIX_CYCLE_OUT_IN_DUAL:
+        case RGB_MATRIX_CYCLE_SPIRAL:
+        case RGB_MATRIX_DUAL_BEACON:
+            return RMF_HUE_MULTI | RMF_STYLE_ANIM;
+        case RGB_MATRIX_SOLID_REACTIVE_MULTIWIDE:
+        case RGB_MATRIX_SOLID_REACTIVE_MULTICROSS:
+        case RGB_MATRIX_SOLID_REACTIVE_MULTINEXUS:
+        case RGB_MATRIX_SOLID_MULTISPLASH:
+            return RMF_HUE_SINGLE | RMF_STLYE_REACTIVE;
+        case RGB_MATRIX_MULTISPLASH:
+        case RGB_MATRIX_TYPING_HEATMAP:
+            return RMF_HUE_MULTI | RMF_STLYE_REACTIVE;
+    }
+
+    return 0;
+}
+
 // Stolen from rgb_matrix.c
 void stolen_eeconfig_read_rgb_matrix(void) {
     eeprom_read_block(&rgb_matrix_config, EECONFIG_RGB_MATRIX, sizeof(rgb_matrix_config));

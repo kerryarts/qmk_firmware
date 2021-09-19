@@ -81,7 +81,7 @@ void rgb_matrix_indicators_user(void) {
             }
 
             // If CAPS LOCK is turned on or shift is being held in an appropriate rgb mode, highlight the white 'shiftable' keys
-            if ((caps_lock_on || (shift_key_held && rgb_mode_is_single_hue))
+            else if ((caps_lock_on || (shift_key_held && (rgb_mode_flags & RMF_HUE_SINGLE) > 0))
                 && key_cap_color == KC_WHITE
                 && (is_key_code_shiftable(key_code) || (layer_index == CL_FUNC && key_code_is_mapped))) {
                 // Shift the hue backward a bit
