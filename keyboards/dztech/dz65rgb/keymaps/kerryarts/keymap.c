@@ -26,12 +26,7 @@ void rgb_matrix_indicators_user(void) {
     bool shift_key_held = get_mods() & MOD_MASK_SHIFT;
 
     uint8_t rgb_mode = rgb_matrix_get_mode();
-    bool rgb_mode_is_single_hue =
-        rgb_mode == RGB_MATRIX_SOLID_COLOR ||
-        rgb_mode == RGB_MATRIX_GRADIENT_UP_DOWN ||
-        rgb_mode == RGB_MATRIX_GRADIENT_LEFT_RIGHT ||
-        rgb_mode == RGB_MATRIX_HUE_BREATHING;
-
+    enum rgb_mode_flags rgb_mode_flags = get_rgb_mode_flags(rgb_mode);
     uint8_t layer_index = get_highest_layer(layer_state); // Highest layer, but there might be others enabled
 
     HSV curr_hsv = rgb_matrix_get_hsv();

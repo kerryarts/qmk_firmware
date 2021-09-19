@@ -22,4 +22,7 @@ typedef struct {
 
 enum key_cap_color get_key_cap_color(uint8_t led_index);
 bool is_key_code_shiftable(uint16_t key_code);
+bool is_key_code_mapped(uint16_t key_code);
+bool is_key_code_func(uint16_t key_code);
 bool is_key_code_macro(uint16_t key_code);
+bool is_key_code_layer(uint16_t key_code);

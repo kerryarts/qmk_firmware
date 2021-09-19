@@ -20,6 +20,7 @@ enum key_cap_color get_key_cap_color(uint8_t led_index) {
 // Returns true if they can be modified by the shift or CAPS LOCK key
 bool is_key_code_shiftable(uint16_t key_code) {
     return (key_code >= KC_A && key_code <= KC_0) // A-Z, 1-0
+        || (key_code >= QK_TAP_DANCE && key_code <= QK_TAP_DANCE_MAX) // Tap dance keys
         || key_code == KC_MINUS
         || key_code == KC_EQUAL
         || key_code == KC_LBRACKET
@@ -33,6 +34,21 @@ bool is_key_code_shiftable(uint16_t key_code) {
         || key_code == KC_SLASH;
 }
 
+bool is_key_code_mapped(uint16_t key_code) {
+    // Excludes KC_NO, KC_ROLL_OVER, KC_POST_FAIL, KC_UNDEFINED
+    return key_code >= KC_A;
+}
+
+bool is_key_code_func(uint16_t key_code) {
+    return key_code > KC_RGUI
+        && !(key_code >= QK_TAP_DANCE && key_code <= QK_TAP_DANCE_MAX); // Treat tap dance keys as normal keys
+}
+
 bool is_key_code_macro(uint16_t key_code) {
     return key_code >= DYN_REC_START1 && key_code <= DYN_MACRO_PLAY2;
+}
+
+bool is_key_code_layer(uint16_t key_code) {
+    // TODO: The comment in quantum_keycodes.h said not to use these directly...shhh don't tell anyone
+    return key_code >= QK_LAYER_TAP && key_code <= QK_LAYER_TAP_TOGGLE_MAX;
 }
