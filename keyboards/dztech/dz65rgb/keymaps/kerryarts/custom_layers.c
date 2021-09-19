@@ -1,49 +1,11 @@
 #include QMK_KEYBOARD_H
 
-#define LED_INDEX_CAPS_LOCK 30
-#define LED_INDEX_MACRO_REC_1 26
-#define LED_INDEX_MACRO_REC_2 40
-#define LED_INDEX_MACRO_PLAY_1 27
-#define LED_INDEX_MACRO_PLAY_2 41
+#include "custom_layers.h"
 
-enum custom_layers {
-    CL_BASE,
-    CL_FUNC,
-    CL_RGB,
-    CL_SYS
-};
+#include "tap_dance.h"
 
-enum custom_keycodes {
-    CKC_RLM_MODE = SAFE_RANGE,
-    CKC_RLM_SPEED,
-    CKC_RLM_HUE,
-    CKC_RLM_SAT,
-    CKC_RLM_VAL,
-
-    CKC_RGB_TOG,
-    CKC_RGB_SAVE,
-    CKC_RGB_LOAD,
-    CKC_MODE_INC,
-    CKC_MODE_DEC,
-    CKC_SPEED_INC,
-    CKC_SPEED_DEC,
-    CKC_HUE_INC,
-    CKC_HUE_DEC,
-    CKC_SAT_INC,
-    CKC_SAT_DEC,
-    CKC_VAL_INC,
-    CKC_VAL_DEC
-};
-
-enum tap_dance {
-    TD_LBRACKET,
-    TD_RBRACKET,
-    TD_SCOLON,
-    TD_QUOTE,
-    TD_COMMA,
-    TD_DOT,
-    TD_SLASH
-};
+#include "keycode.h"
+#include "quantum_keycodes.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [CL_BASE] = LAYOUT_65_ansi(
@@ -69,5 +31,5 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_NO, KC_NO, KC_NO, EEP_RST, RESET, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO,
         KC_NO, KC_NO, KC_NO, DEBUG, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO,
         KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, NK_OFF, NK_TOGG, NK_ON, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO,
-        KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO),
+        KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO)
 };
