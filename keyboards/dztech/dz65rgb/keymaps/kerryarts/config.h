@@ -20,6 +20,11 @@
 // How long (in ms) before a tap becomes a hold. Default 200.
 #define TAPPING_TERM 150
 
+// The GraceEsc keycode makes Shift+Esc output '~', however this breaks the Ctrl+Shift+Esc shortcut for task manager in Windows
+// These defines revert Shift+Esc to default behaviour when Alt or Ctrl is held, which fixes this
+#define GRAVE_ESC_ALT_OVERRIDE
+#define GRAVE_ESC_CTRL_OVERRIDE
+
 // Required for DIGITAL_RAIN and TYPING_HEATMAP
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 
