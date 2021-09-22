@@ -6,6 +6,7 @@
 #include "rgb_layer.h"
 #include "rgb_util.h"
 #include "dynamic_macro.h"
+#include "wpm_vu.h"
 
 #include "print.h"
 #include "color.h"
@@ -60,9 +61,7 @@ void rgb_matrix_indicators_user(void) {
                 new_hsv = shift_hsv;
             }
             // If CAPS LOCK is turned on or shift is being held in an appropriate rgb mode, highlight the white 'shiftable' keys
-            else if ((caps_lock_on || (shift_key_held && (rgb_mode_flags & RMF_HUE_SINGLE) > 0))
-                && key_cap_color == KC_WHITE
-                && is_key_code_shiftable(key_code)) {
+            else if ((caps_lock_on || (shift_key_held && (rgb_mode_flags & RMF_HUE_SINGLE) > 0)) && key_cap_color == KC_WHITE && is_key_code_shiftable(key_code)) {
                 new_hsv = shift_hsv;
             }
             else if (key_cap_color == KC_ORANGE) {
@@ -87,6 +86,9 @@ void rgb_matrix_indicators_user(void) {
             else if (layer_index != CL_BASE && (rgb_mode_flags & RMF_STLYE_REACTIVE) > 0) {
                 // Keep same HSV
             }
+            else if (process_led_wpm(led_index, key_pos, key_code, &new_hsv)) {
+                // new_hsv set via pointer
+            }
             else {
                 // Don't set a color, let the RGB mode apply
                 continue;
@@ -100,12 +102,14 @@ void rgb_matrix_indicators_user(void) {
 
 void keyboard_post_init_user(void) {
     keyboard_post_init_rgb_util();
+    keyboard_post_init_wpm();
 }
 
 void matrix_init_user(void) {
 }
 
 void matrix_scan_user(void) {
+    matrix_scan_wpm();
 }
 
 void suspend_power_down_user(void) {
@@ -128,7 +132,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     #endif
 
     // Layer indepedent key processing
-    if (!process_record_macro(keycode, record)) {
+    bool continue_processing =
+        process_record_macro(keycode, record) &&
+        process_record_wpm(keycode, record);
+
+    if (!continue_processing) {
         return false;
     }
 

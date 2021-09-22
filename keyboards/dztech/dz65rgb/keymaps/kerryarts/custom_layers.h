@@ -30,5 +30,7 @@ enum custom_keycodes {
     CKC_SAT_INC,
     CKC_SAT_DEC,
     CKC_VAL_INC,
-    CKC_VAL_DEC
+    CKC_VAL_DEC,
+
+    CKC_WPM_TOG
 };
