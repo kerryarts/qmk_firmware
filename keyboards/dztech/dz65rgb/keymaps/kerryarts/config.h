@@ -1,5 +1,45 @@
+/*
+ * Features that can be enabled
+ */
+
 // TODO: This probably removes the need to have NKRO keys mapped
-#define FORCE_NKRO
+// #define FORCE_NKRO
+
+
+
+/*
+ * Features that cab be disabled (to reduce firmware size)
+ */
+
+#ifndef NO_DEBUG
+#   define NO_DEBUG
+#endif // !NO_DEBUG
+#if !defined(NO_PRINT) && !defined(CONSOLE_ENABLE)
+#   define NO_PRINT
+#endif // !NO_PRINT
+
+#define DISABLE_LEADER
+
+// Disable layers (we use these)
+// #define NO_ACTION_LAYER
+
+// Disable tap dance and other tapping features (we use these)
+// #define NO_ACTION_TAPPING
+
+// Disable one - shot modifiers (we use these)
+// #define NO_ACTION_ONESHOT
+
+// Disable old style macro handling (already disabled in keyboard rules.mk)
+// #define NO_ACTION_MACRO
+
+// Disable old style function handling (already disabled in keyboard rules.mk)
+// #define NO_ACTION_FUNCTION
+
+
+
+/*
+ * Macro settings
+ */
 
 // Do not allow one macro to contain the other macro
 #define DYNAMIC_MACRO_NO_NESTING
@@ -7,6 +47,12 @@
 // This normally defaults to 128, but it was causing issues on this board. TODO: Investigate.
 // Note that the number of keypresses is actually half this (1 each for keydown and keyup)
 #define DYNAMIC_MACRO_SIZE 64
+
+
+
+/*
+ * Tap settings
+ */
 
 // Makes tap and hold keys trigger the hold if another key is pressed before releasing, even if it hasn't hit the `TAPPING_TERM`
 #define PERMISSIVE_HOLD
@@ -20,10 +66,22 @@
 // How long (in ms) before a tap becomes a hold. Default 200.
 #define TAPPING_TERM 150
 
+
+
+/*
+ * Special keycode settings
+ */
+
 // The GraceEsc keycode makes Shift+Esc output '~', however this breaks the Ctrl+Shift+Esc shortcut for task manager in Windows
 // These defines revert Shift+Esc to default behaviour when Alt or Ctrl is held, which fixes this
 #define GRAVE_ESC_ALT_OVERRIDE
 #define GRAVE_ESC_CTRL_OVERRIDE
+
+
+
+/*
+ * RGB settings
+ */
 
 // Required for DIGITAL_RAIN and TYPING_HEATMAP
 #define RGB_MATRIX_FRAMEBUFFER_EFFECTS
@@ -44,6 +102,10 @@
 
 // We use our own custom key codes for RGB. Free up firmware space by disabling the built in ones.
 #define RGB_MATRIX_DISABLE_KEYCODES
+
+/*
+ * RGB effects
+ */
 
 // Free up firmware space by disabling the RGB modes which are less interesting
 // #define DISABLE_RGB_MATRIX_SOLID_COLOR            //
