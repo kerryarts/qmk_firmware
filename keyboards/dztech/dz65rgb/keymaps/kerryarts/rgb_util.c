@@ -2,6 +2,7 @@
 
 #include "rgb_matrix.h"
 #include "color.h"
+#include "eeprom.h"
 #include <stdint.h>
 
 const HSV HSV_NONE = {.h = 0, .s = 0, .v = 0};
@@ -9,13 +10,15 @@ const HSV HSV_RED_ORANGE = {.h = 21, .s = 255, .v = 255};
 
 static uint16_t _pulse_timer = 0;
 
-HSV pulse_hsv(HSV hsv) {
-    uint16_t tick = timer_elapsed(_pulse_timer) % 512;
+HSV pulse_hsv(HSV hsv, uint16_t duration) {
+    uint16_t tick = timer_elapsed(_pulse_timer) % duration;
+    uint16_t scale = duration / 2;
+    uint16_t scaled_tick = (tick * 256) / scale;
 
-    // Over ~1/4 second
-    uint8_t val = tick < 256
-        ? tick // Increase the val from 0 to 255
-        : 255 - (tick - 256); // Then decrease it from 255 to 0
+    // If in the first half of the animation
+    uint8_t val = tick < scale
+        ? scaled_tick // Increase the val from 0 to 255
+        : 255 - scaled_tick; // Then decrease it from 255 to 0
 
     // Force max saturation for visability
     return (HSV) { .h = hsv.h, .s = 255, .v = val };

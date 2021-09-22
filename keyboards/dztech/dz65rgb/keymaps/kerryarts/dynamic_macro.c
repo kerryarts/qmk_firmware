@@ -24,7 +24,7 @@ bool process_led_macro(uint8_t led_index, keypos_t key_pos, uint16_t key_code, H
             return false;
         case MS_RECORDING:
             if ((led_index == LED_INDEX_MACRO_REC_1 && _is_macro_1) || (led_index == LED_INDEX_MACRO_REC_2 && !_is_macro_1)) {
-                *hsv = pulse_hsv(dec_hsv(*hsv));
+                *hsv = pulse_hsv(dec_hsv(*hsv), 512);
                 return true;
             }
             break;

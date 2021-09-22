@@ -17,7 +17,7 @@ enum rgb_mode_flags {
 extern const HSV HSV_NONE;
 extern const HSV HSV_RED_ORANGE;
 
-HSV pulse_hsv(HSV hsv);
+HSV pulse_hsv(HSV hsv, uint16_t duration);
 HSV inc_hsv(HSV hsv);
 HSV dec_hsv(HSV hsv);
 HSV inv_hsv(HSV hsv);

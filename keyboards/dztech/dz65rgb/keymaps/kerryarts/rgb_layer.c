@@ -254,7 +254,7 @@ bool process_led_rgb_layer(uint8_t led_index, keypos_t key_pos, uint16_t key_cod
         *hsv = HSV_NONE;
     }
     else if (key_is_current_val) {
-        *hsv = pulse_hsv(*hsv);
+        *hsv = pulse_hsv(*hsv, 512);
     }
 
     return true;
