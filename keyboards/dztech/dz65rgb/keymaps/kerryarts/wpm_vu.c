@@ -10,18 +10,20 @@
 #include <stdint.h>
 
 #define SAMPLE_SEC 30
+#define SAMPLE_ARRAY_SIZE SAMPLE_SEC + 1
 #define WORD_SIZE 5
 
 static bool _wpm_enabled = false;
-static uint8_t _key_count_by_second[SAMPLE_SEC] = {0};
+static uint8_t _key_count_samples[SAMPLE_ARRAY_SIZE] = {0}; // Stores 1 sample per second, with 1 additional buffer sample
 static uint16_t _wpm_timer = 0;
-static uint16_t _current_key_count = 0;
+static uint16_t _current_key_count = 0; // Treated as a rolling average over the SAMPLE_SEC window
 
-uint8_t _get_curr_key_count_index(void) {
+uint8_t _get_curr_sample_index(void) {
     uint16_t ellapsed_ms = timer_elapsed(_wpm_timer);
-    return (ellapsed_ms / 1000) % 30;
+    return (ellapsed_ms / 1000) % SAMPLE_ARRAY_SIZE;
 }
 
+// Stolen from wpm.c
 bool _is_wpm_keycode(uint16_t keycode) {
     if ((keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX) || (keycode >= QK_LAYER_TAP && keycode <= QK_LAYER_TAP_MAX) || (keycode >= QK_MODS && keycode <= QK_MODS_MAX)) {
         keycode = keycode & 0xFF;
@@ -58,15 +60,19 @@ void matrix_scan_wpm(void) {
         return;
     }
 
-    uint8_t index = (_get_curr_key_count_index() + 1) % SAMPLE_SEC;
-    uint8_t count = _key_count_by_second[index];
+    // Index represents the current sample. Index + 1 represents the oldest sample.
+    uint8_t index = (_get_curr_sample_index() + 1) % SAMPLE_ARRAY_SIZE;
+    uint8_t count = _key_count_samples[index];
 
     if (count == 0) {
         return;
     }
 
+    // Remove the oldest sample from our rolling count
     _current_key_count -= count;
-    _key_count_by_second[index] = 0;
+
+    // Clear the historical count. This index will be incremented in the next second.
+    _key_count_samples[index] = 0;
 }
 
 bool process_led_wpm(uint8_t led_index, keypos_t key_pos, uint16_t key_code, HSV* hsv) {
