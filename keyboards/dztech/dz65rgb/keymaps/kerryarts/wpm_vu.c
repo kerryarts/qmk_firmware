@@ -9,11 +9,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+enum WPM_STATE {
+    WPM_DISABLED = 1,
+    WPM_ENABLED,
+    WPM_PAUSED
+};
+
 #define SAMPLE_SEC 30
 #define SAMPLE_ARRAY_SIZE SAMPLE_SEC + 1
 #define WORD_SIZE 5
 
-static bool _wpm_enabled = false;
+static enum WPM_STATE _wpm_state = WPM_DISABLED;
 static uint8_t _key_count_samples[SAMPLE_ARRAY_SIZE] = {0}; // Stores 1 sample per second, with 1 additional buffer sample
 static uint16_t _wpm_timer = 0;
 static uint16_t _current_key_count = 0; // Treated as a rolling average over the SAMPLE_SEC window
@@ -38,8 +44,20 @@ bool _is_wpm_keycode(uint16_t keycode) {
     return false;
 }
 
+void _set_state(enum WPM_STATE wpm_state) {
+    _wpm_state = wpm_state;
+
+    if (wpm_state == WPM_ENABLED) {
+        _current_key_count = 0;
+
+        for (uint8_t i; i < SAMPLE_ARRAY_SIZE; i++) {
+            _key_count_samples[i] = 0;
+        }
+    }
+}
+
 uint8_t get_curr_wpm(void) {
-    if (!_wpm_enabled) {
+    if (_wpm_state == WPM_DISABLED) {
         return 0;
     }
 
@@ -56,7 +74,7 @@ void keyboard_post_init_wpm(void) {
 }
 
 void matrix_scan_wpm(void) {
-    if (!_wpm_enabled) {
+    if (_wpm_state != WPM_ENABLED) {
         return;
     }
 
@@ -76,7 +94,7 @@ void matrix_scan_wpm(void) {
 }
 
 bool process_led_wpm(uint8_t led_index, keypos_t key_pos, uint16_t key_code, HSV* hsv) {
-    if (_wpm_enabled && key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 12) {
+    if (_wpm_state != WPM_DISABLED && key_pos.row == 0 && key_pos.col >= 1 && key_pos.col <= 12) {
         // Average person is around 40 WPM. 80 is good.
         uint8_t wpm = get_curr_wpm();
         uint8_t hue;
@@ -114,25 +132,31 @@ bool process_led_wpm(uint8_t led_index, keypos_t key_pos, uint16_t key_code, HSV
 }
 
 bool process_record_wpm(uint16_t keycode, keyrecord_t* record) {
-    if (_wpm_enabled && record->event.pressed && _is_wpm_keycode(keycode)) {
-        uint8_t index = _get_curr_key_count_index();
-
-        _current_key_count++;
-        _key_count_by_second[index] += 1;
+    if (!record->event.pressed) {
+        return true;
     }
 
-    if (record->event.pressed && keycode == CKC_WPM_TOG) {
-        _wpm_enabled = !_wpm_enabled;
-
-        if (_wpm_enabled) {
-            _current_key_count = 0;
-
-            for (uint8_t i; i < SAMPLE_SEC; i++) {
-                _key_count_by_second[i] = 0;
+    switch (keycode) {
+        case CKC_WPM_TOG:
+            _set_state(_wpm_state == WPM_DISABLED ? WPM_ENABLED : WPM_DISABLED);
+            return false;
+        case KC_ESC:
+        case KC_GESC:
+            if (_wpm_state == WPM_ENABLED) {
+                _set_state(WPM_PAUSED);
             }
-        }
+            else if (_wpm_state == WPM_PAUSED) {
+                _set_state(WPM_ENABLED);
+            }
+            break;
+        default:
+            if (_wpm_state == WPM_ENABLED && _is_wpm_keycode(keycode)) {
+                uint8_t index = _get_curr_sample_index();
 
-        return false;
+                _current_key_count++;
+                _key_count_samples[index] += 1;
+            }
+            break;
     }
 
     return true;
