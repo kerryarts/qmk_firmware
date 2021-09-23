@@ -88,13 +88,15 @@ bool process_led_wpm(uint8_t led_index, keypos_t key_pos, uint16_t key_code, HSV
             hue = 85;
         }
 
-        if (wpm / 10 == key_pos.col || (key_pos.col == 12 && wpm >= 120)) {
-            // uint8_t pulse_duration = 1024 - ((key_pos.col - 1) * 82);
+        // If the WPM is >= X5 for the current X key, pulse the light to indicate we are getting close to key X+1!
+        if (wpm / 10 == key_pos.col && wpm % 10 >= 5) {
             *hsv = pulse_hsv((HSV){.h = hue, .s = 255, .v = 255}, 256);
         }
+        // If this key is greater than the current WPM, light it solid
         else if (wpm >= key_pos.col * 10) {
             *hsv = (HSV){.h = hue, .s = 255, .v = 255};
         }
+        // Else light it dim
         else {
             *hsv = (HSV){.h = hue, .s = 175, .v = 175};
         }
