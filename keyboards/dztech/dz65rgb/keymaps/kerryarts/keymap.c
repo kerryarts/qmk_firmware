@@ -58,10 +58,14 @@ void rgb_matrix_indicators_user(void) {
             }
             // Always light the CAPS LOCK key when CAPS LOCK is on
             else if (caps_lock_on && led_index == LED_INDEX_CAPS_LOCK) {
-                new_hsv = shift_hsv;
+                // Keep same HSV
             }
             // If CAPS LOCK is turned on or shift is being held in an appropriate rgb mode, highlight the white 'shiftable' keys
-            else if ((caps_lock_on || (shift_key_held && (rgb_mode_flags & RMF_HUE_SINGLE) > 0)) && key_cap_color == KC_WHITE && is_key_code_shiftable(key_code)) {
+            else if ((caps_lock_on || shift_key_held)
+                && (rgb_mode_flags & RMF_HUE_SINGLE) > 0
+                && (rgb_mode_flags & (RMF_STYLE_STAIC | RMF_STYLE_ANIM)) > 0
+                && key_cap_color == KC_WHITE
+                && is_key_code_shiftable(key_code)) {
                 new_hsv = shift_hsv;
             }
             else if (key_cap_color == KC_ORANGE) {
@@ -82,7 +86,7 @@ void rgb_matrix_indicators_user(void) {
             else if (is_key_code_func(key_code)) {
                 new_hsv = func_hsv;
             }
-            // If not on the base layer, and a reactive RGB mode is enabled, highlight the mapped keys so we can see them
+            // If not on the base layer (ie: the func layer), and a reactive RGB mode is enabled (so LEDs are only on when pressed), highlight the mapped keys so we can see them
             else if (layer_index != CL_BASE && (rgb_mode_flags & RMF_STLYE_REACTIVE) > 0) {
                 // Keep same HSV
             }
