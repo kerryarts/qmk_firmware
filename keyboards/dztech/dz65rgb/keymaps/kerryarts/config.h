@@ -57,7 +57,7 @@
 // Makes tap and hold keys trigger the hold if another key is pressed before releasing, even if it hasn't hit the `TAPPING_TERM`
 #define PERMISSIVE_HOLD
 
-// How many taps before triggering a layer toggle
+// How many taps before triggering a layer toggle via TT()
 #define TAPPING_TOGGLE 2
 
 // Tapping this number of times holds the key until tapped once again
