@@ -115,6 +115,7 @@ static uint8_t _dec_edit_hue(uint8_t hue) {
         key_num--;
     }
     else {
+        // Wrap around to last key
         key_num = EDIT_HUE_KEY_COUNT - 1;
     }
 
@@ -130,17 +131,17 @@ static uint8_t _get_key_num_from_edit_byte(uint8_t byte) {
 }
 
 static uint8_t _inc_edit_byte(uint8_t byte) {
-    uint8_t key_num = _get_key_num_from_edit_byte(byte) + 1;
-    return _get_edit_byte_from_key_num(key_num );
+    uint8_t key_num = _get_key_num_from_edit_byte(byte);
+    return key_num == EDIT_BYTE_KEY_COUNT - 1 // If last key
+        ? _get_edit_byte_from_key_num(key_num)
+        : _get_edit_byte_from_key_num(key_num + 1);
 }
 
 static uint8_t _dec_edit_byte(uint8_t byte) {
     uint8_t key_num = _get_key_num_from_edit_byte(byte);
-    if (key_num != 0) {
-        key_num--;
-    }
-
-    return _get_edit_byte_from_key_num(key_num);
+    return key_num == 0 // If first key
+        ? _get_edit_byte_from_key_num(key_num)
+        : _get_edit_byte_from_key_num(key_num - 1);
 }
 
 static bool _try_get_byte_from_key_pos(keypos_t key_pos, uint8_t* byte) {
