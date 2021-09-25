@@ -41,8 +41,9 @@ enum rgb_mode_flags get_rgb_mode_flags(uint8_t rgb_mode) {
         case RGB_MATRIX_SOLID_COLOR:
         case RGB_MATRIX_GRADIENT_UP_DOWN:
         case RGB_MATRIX_GRADIENT_LEFT_RIGHT:
-        case RGB_MATRIX_HUE_BREATHING:
             return RMF_HUE_SINGLE | RMF_STYLE_STAIC;
+        case RGB_MATRIX_HUE_BREATHING:
+            return RMF_HUE_SINGLE | RMF_STYLE_ANIM;
         case RGB_MATRIX_CYCLE_UP_DOWN:
         case RGB_MATRIX_RAINBOW_MOVING_CHEVRON:
         case RGB_MATRIX_CYCLE_OUT_IN:
