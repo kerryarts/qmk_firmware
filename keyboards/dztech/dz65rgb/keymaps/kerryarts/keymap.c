@@ -7,6 +7,7 @@
 #include "rgb_util.h"
 #include "dynamic_macro.h"
 #include "wpm_vu.h"
+#include "layer_lock.h"
 
 #include "print.h"
 #include "color.h"
@@ -138,6 +139,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     // Layer indepedent key processing
     bool continue_processing =
         process_record_macro(keycode, record) &&
+        process_record_layer_lock(keycode, record) &&
         process_record_wpm(keycode, record);
 
     if (!continue_processing) {
@@ -160,6 +162,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
+    // Layer indepedent key processing
+    state = layer_state_set_layer_lock(state);
+
+    // Layer specific processing
     switch (get_highest_layer(state)) {
         case CL_BASE:
             break;

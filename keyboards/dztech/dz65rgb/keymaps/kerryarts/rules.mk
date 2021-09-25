@@ -30,3 +30,4 @@ SRC += dynamic_macro.c
 SRC += tap_dance.c
 SRC += wpm_vu.c
 SRC += custom_layers.c
+SRC += layer_lock.c
