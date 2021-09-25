@@ -1,5 +1,7 @@
 #include "key_util.h"
 
+#include "custom_layers.h"
+
 #include "keycode.h"
 #include "quantum_keycodes.h"
 #include <stdint.h>
@@ -50,5 +52,14 @@ bool is_key_code_macro(uint16_t key_code) {
 
 bool is_key_code_layer(uint16_t key_code) {
     // TODO: The comment in quantum_keycodes.h said not to use these directly...shhh don't tell anyone
-    return key_code >= QK_LAYER_TAP && key_code <= QK_LAYER_TAP_TOGGLE_MAX;
+    return (key_code >= QK_LAYER_TAP && key_code <= QK_LAYER_TAP_MAX)
+        || (key_code >= QK_TO && key_code <= QK_TO_MAX)
+        || (key_code >= QK_MOMENTARY && key_code <= QK_MOMENTARY_MAX)
+        || (key_code >= QK_DEF_LAYER && key_code <= QK_DEF_LAYER_MAX)
+        || (key_code >= QK_TOGGLE_LAYER && key_code <= QK_TOGGLE_LAYER_MAX)
+        || (key_code >= QK_ONE_SHOT_LAYER && key_code <= QK_ONE_SHOT_LAYER_MAX)
+        || (key_code >= QK_ONE_SHOT_MOD && key_code <= QK_ONE_SHOT_MOD_MAX)
+        || (key_code >= QK_LAYER_TAP_TOGGLE && key_code <= QK_LAYER_TAP_TOGGLE_MAX)
+        || (key_code >= QK_LAYER_MOD && key_code <= QK_LAYER_MOD_MAX)
+        || (key_code == CKC_LL_1);
 }
